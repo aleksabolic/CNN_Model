@@ -3,7 +3,12 @@
 #include <algorithm>
 #include <utility>
 
-class ConvoLayer {
+#ifndef LAYERS_CPP
+#define LAYERS_CPP
+#include "Layers.cpp"
+#endif 
+
+class ConvoLayer : public Layers {
 private:
 	int numFilters, kernelSize, padding, batchSize;
 	std::pair<int, int> strides;

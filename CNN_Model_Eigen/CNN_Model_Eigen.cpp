@@ -15,12 +15,12 @@
 
 #ifndef DENSELAYER_CPP
 #define DENSELAYER_CPP
-#include "./DenseLayer.cpp"
+#include "DenseLayer.cpp"
 #endif // DENSELAYER_CPP
 
 #ifndef CONVOLAYER_CPP
 #define CONVOLAYER_CPP
-#include "./ConvoLayer.cpp"
+#include "ConvoLayer.cpp"
 #endif // CONVOLAYER_CPP
 
 #include "./NNModel.cpp"

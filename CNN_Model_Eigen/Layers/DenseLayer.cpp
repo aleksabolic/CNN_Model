@@ -4,10 +4,15 @@
 
 #ifndef SIGMOID_CPP
 #define SIGMOID_CPP
-#include "./Sigmoid.cpp"
+#include "../Sigmoid.cpp"
 #endif // SIGMOID_CPP
 
-class DenseLayer {
+#ifndef LAYERS_CPP
+#define LAYERS_CPP
+#include "Layers.cpp"
+#endif 
+
+class DenseLayer : public Layers{
 private:
 	int numNodes;
 	int inputSize;

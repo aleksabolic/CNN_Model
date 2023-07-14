@@ -1,8 +1,12 @@
 #include <Eigen/Dense>
 #include <vector>
-#include "./Layers.cpp"
 
-class FlattenLayer{
+#ifndef LAYERS_CPP
+#define LAYERS_CPP
+#include "Layers.cpp"
+#endif 
+
+class FlattenLayer : public Layers{
 public:
 	int batchSize, inputChannels, inputHeight, inputWidth;
 	void initSizes(int batchSize1, int inputChannels1, int inputHeight1, int inputWidth1) {

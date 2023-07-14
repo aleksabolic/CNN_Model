@@ -3,7 +3,7 @@
 
 #ifndef LAYERS_CPP
 #define LAYERS_CPP
-#include "./Layers.cpp"
+#include "Layers.cpp"
 #endif 
 
 // I dont need to save the input ??

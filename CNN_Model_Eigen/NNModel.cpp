@@ -3,13 +3,18 @@
 
 #ifndef DENSELAYER_CPP
 #define DENSELAYER_CPP
-#include "./DenseLayer.cpp"
+#include "DenseLayer.cpp"
 #endif // DENSELAYER_CPP
 
 #ifndef CONVOLAYER_CPP
 #define CONVOLAYER_CPP
-#include "./ConvoLayer.cpp"
+#include "ConvoLayer.cpp"
 #endif // CONVOLAYER_CPP
+
+#ifndef LAYERS_CPP
+#define LAYERS_CPP
+#include "Layers.cpp"
+#endif 
 
 #ifndef IMAGELOADER.CPP
 #define IMAGELOADER.CPP

@@ -1,7 +1,11 @@
 #include <vector>
 #include <Eigen/Dense>
 #include <iostream>
+
+#ifndef SIGMOID_CPP
+#define SIGMOID_CPP
 #include "./Sigmoid.cpp"
+#endif // SIGMOID_CPP
 
 class DenseLayer {
 private:

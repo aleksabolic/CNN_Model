@@ -1,7 +1,21 @@
 #include <vector>
 #include <Eigen/Dense>
+
+#ifndef DENSELAYER_CPP
+#define DENSELAYER_CPP
 #include "./DenseLayer.cpp"
+#endif // DENSELAYER_CPP
+
+#ifndef CONVOLAYER_CPP
+#define CONVOLAYER_CPP
 #include "./ConvoLayer.cpp"
+#endif // CONVOLAYER_CPP
+
+#ifndef IMAGELOADER.CPP
+#define IMAGELOADER.CPP
+#include "./ImageLoader.cpp"
+#endif
+
 #include "./Loss.cpp"
 #include <algorithm>
 
@@ -11,6 +25,13 @@ private:
 	int batchSize = -1;
 
 	void propagateInput(Eigen::MatrixXd x) {
+		layers[0].forward(x);
+		for (int i = 1; i < layers.size(); i++) {
+			layers[i].forward(layers[i - 1].layerOutput);
+		}
+	}
+
+	void propagateInput(vector<vector<Eigen::MatrixXd>> x) {
 		layers[0].forward(x);
 		for (int i = 1; i < layers.size(); i++) {
 			layers[i].forward(layers[i - 1].layerOutput);
@@ -48,7 +69,7 @@ private:
 		return gradients;
 	}
 
-	void adamOptimizer(std::vector<double> batchY, double alpha, double T, double e = 10e-7, double beta1 = 0.9, double beta2 = 0.999) {
+	void adamOptimizer(double alpha, double T, double e = 10e-7, double beta1 = 0.9, double beta2 = 0.999) {
 
 		//init s and v for both w and b
 		std::vector<Eigen::MatrixXd> sw = std::vector<Eigen::MatrixXd>(layers.size());
@@ -99,6 +120,7 @@ private:
 public:
 
 	std::vector<DenseLayer> layers;
+
 	NNModel(const std::vector<DenseLayer>& layers) : layers(layers) {
 
 	}
@@ -178,7 +200,7 @@ public:
 					propagateGradient(dy);
 
 
-					adamOptimizer(batchY, 0.0001, 20);
+					adamOptimizer(0.0001, 15);
 
 					/*for (DenseLayer& layer : layers) {
 						layer.gradientDescent(alpha);
@@ -195,6 +217,30 @@ public:
 
 	}
 
+	void softmaxGradient(Eigen::MatrixXd yHat, std::vector<double> yTrue) {
+
+	}
+
+	
+
+
+	void train(vector<vector<Eigen::MatrixXd>> dataSet, vector<std::string> dataLabels) {
+		propagateInput(dataSet);
+		Eigen::MatrixXd yHat = layers[layers.size() - 1].layerOutput;
+
+		Eigen::MatrixXd dy = softmaxGradient(yHat, dataLabels); // Softmax gradient
+		propagateGradient(dy);
+		adamOptimizer(0.0001, 15);
+	}
+
+	void fit(std::string path, int epochs) {
+
+		for (int w = 0; w < epochs; w++) {
+			ImageLoader::readImages(path, batchSize, [this](vector<vector<Eigen::MatrixXd>> dataSet, vector<std::string> dataLabels) {
+				this->train(dataSet, dataLabels);
+			});
+		}
+	}
 
 
 	Eigen::MatrixXd predict(Eigen::MatrixXd x) {

@@ -145,3 +145,4 @@ void DenseLayer::gradientDescent(double alpha) {
 	WGradients.setZero();
 	BGradients.setZero();
 }
+

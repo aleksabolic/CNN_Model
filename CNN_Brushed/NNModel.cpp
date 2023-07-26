@@ -78,64 +78,62 @@ Eigen::MatrixXd NNModel::calcCostGradient(Eigen::MatrixXd yHat, std::vector<doub
 	return gradients;
 }
 
-void NNModel::adamOptimizer(double alpha, double T, double e = 10e-7, double beta1 = 0.9, double beta2 = 0.999) {
-
-	//init s and v for both w and b for DenseLayers
-	std::vector<Eigen::MatrixXd> sw = std::vector<Eigen::MatrixXd>(layers.size());
-	std::vector<Eigen::MatrixXd> vw = std::vector<Eigen::MatrixXd>(layers.size());
-	std::vector<Eigen::RowVectorXd> sb = std::vector<Eigen::RowVectorXd>(layers.size());
-	std::vector<Eigen::RowVectorXd> vb = std::vector<Eigen::RowVectorXd>(layers.size());
-
-	for (int l = 0; l < layers.size(); l++) {
-		sw[l] = Eigen::MatrixXd::Zero(layers[l].w.rows(), layers[l].w.cols());
-		vw[l] = Eigen::MatrixXd::Zero(layers[l].w.rows(), layers[l].w.cols());
-		sb[l] = Eigen::RowVectorXd::Zero(layers[l].b.size());
-		vb[l] = Eigen::RowVectorXd::Zero(layers[l].b.size());
-	}
-
-	//init s and v for both w and b for ConvoLayers
-	std::vector< std::vector<std::vector<Eigen::MatrixXd>> > swC =
-
-		auto square = [](double x) {return x * x; };
-	auto root = [](double x) {return sqrt(x); };
-	auto addE = [](double x) {return x + 10e-7; };
-
-	for (int t = 1; t < T; t++) { // or check for convergence
-		for (int l = 0; l < layers.size(); l++) {
-
-			// update s and v for w
-			vw[l] = beta1 * vw[l] + (1 - beta1) * layers[l].WGradients;
-			sw[l] = beta2 * sw[l] + (1 - beta2) * layers[l].WGradients.unaryExpr(square);
-
-			Eigen::MatrixXd vCorr = vw[l] / (1 - pow(beta1, t));
-			Eigen::MatrixXd sCorr = sw[l] / (1 - pow(beta2, t));
-
-			Eigen::MatrixXd rootS = sCorr.unaryExpr(root);
-
-			layers[l].w = layers[l].w - alpha * (vCorr.cwiseQuotient(rootS.unaryExpr(addE)));
-
-
-			// update s and v for b
-			vb[l] = beta1 * vb[l] + (1 - beta1) * layers[l].BGradients;
-			sb[l] = beta2 * sb[l] + (1 - beta2) * layers[l].BGradients.unaryExpr(square);
-
-			Eigen::RowVectorXd vbCorr = vb[l] / (1 - pow(beta1, t));
-			Eigen::RowVectorXd sbCorr = sb[l] / (1 - pow(beta2, t));
-
-			Eigen::RowVectorXd rS = sbCorr.unaryExpr(root);
-
-			layers[l].b = layers[l].b - alpha * (vbCorr.cwiseQuotient(rS.unaryExpr(addE)));
-		}
-	}
-}
+//void NNModel::adamOptimizer(double alpha, double T, double e = 10e-7, double beta1 = 0.9, double beta2 = 0.999) {
+//
+//	//init s and v for both w and b for DenseLayers
+//	std::vector<Eigen::MatrixXd> sw = std::vector<Eigen::MatrixXd>(layers.size());
+//	std::vector<Eigen::MatrixXd> vw = std::vector<Eigen::MatrixXd>(layers.size());
+//	std::vector<Eigen::RowVectorXd> sb = std::vector<Eigen::RowVectorXd>(layers.size());
+//	std::vector<Eigen::RowVectorXd> vb = std::vector<Eigen::RowVectorXd>(layers.size());
+//
+//	for (int l = 0; l < layers.size(); l++) {
+//		sw[l] = Eigen::MatrixXd::Zero(layers[l].w.rows(), layers[l].w.cols());
+//		vw[l] = Eigen::MatrixXd::Zero(layers[l].w.rows(), layers[l].w.cols());
+//		sb[l] = Eigen::RowVectorXd::Zero(layers[l].b.size());
+//		vb[l] = Eigen::RowVectorXd::Zero(layers[l].b.size());
+//	}
+//
+//	//init s and v for both w and b for ConvoLayers
+//	std::vector< std::vector<std::vector<Eigen::MatrixXd>> > swC =
+//
+//		auto square = [](double x) {return x * x; };
+//	auto root = [](double x) {return sqrt(x); };
+//	auto addE = [](double x) {return x + 10e-7; };
+//
+//	for (int t = 1; t < T; t++) { // or check for convergence
+//		for (int l = 0; l < layers.size(); l++) {
+//
+//			// update s and v for w
+//			vw[l] = beta1 * vw[l] + (1 - beta1) * layers[l].WGradients;
+//			sw[l] = beta2 * sw[l] + (1 - beta2) * layers[l].WGradients.unaryExpr(square);
+//
+//			Eigen::MatrixXd vCorr = vw[l] / (1 - pow(beta1, t));
+//			Eigen::MatrixXd sCorr = sw[l] / (1 - pow(beta2, t));
+//
+//			Eigen::MatrixXd rootS = sCorr.unaryExpr(root);
+//
+//			layers[l].w = layers[l].w - alpha * (vCorr.cwiseQuotient(rootS.unaryExpr(addE)));
+//
+//
+//			// update s and v for b
+//			vb[l] = beta1 * vb[l] + (1 - beta1) * layers[l].BGradients;
+//			sb[l] = beta2 * sb[l] + (1 - beta2) * layers[l].BGradients.unaryExpr(square);
+//
+//			Eigen::RowVectorXd vbCorr = vb[l] / (1 - pow(beta1, t));
+//			Eigen::RowVectorXd sbCorr = sb[l] / (1 - pow(beta2, t));
+//
+//			Eigen::RowVectorXd rS = sbCorr.unaryExpr(root);
+//
+//			layers[l].b = layers[l].b - alpha * (vbCorr.cwiseQuotient(rS.unaryExpr(addE)));
+//		}
+//	}
+//}
 
 
 double NNModel::calcCost(Eigen::MatrixXd x, std::vector<double> y) {
 	double cost = 0.0;
 
-	propagateInput(x);
-
-	Eigen::MatrixXd yHat = layers[layers.size() - 1].layerOutput;
+	Eigen::MatrixXd yHat = propagateInput(Tensor::tensorWrap(x)).matrix;
 
 	for (int i = 0; i < y.size(); i++) {
 
@@ -184,18 +182,18 @@ void NNModel::fit(std::vector<std::vector<double>> input, std::vector<double> y,
 					batchY = batchTemp;
 				}
 
+				Eigen::MatrixXd yHat;
+
 				if (i == y.size() - 1 && i % batchSize != 0) {
-					propagateInput(x.middleRows(i - batchSize + 1, batchSize));
+					yHat = propagateInput(Tensor::tensorWrap(x.middleRows(i - batchSize + 1, batchSize))).matrix;
 				}
 				else {
-					propagateInput(x.middleRows(i - batchSize, batchSize));
+					yHat = propagateInput(Tensor::tensorWrap(x.middleRows(i - batchSize, batchSize))).matrix;
 				}
-
-				Eigen::MatrixXd yHat = layers[layers.size() - 1].layerOutput;
 
 				Eigen::MatrixXd dy = calcCostGradient(yHat, batchY); // Binary Cross Entropy Loss
 
-				propagateGradient(dy);
+				propagateGradient(Tensor::tensorWrap(dy));
 
 
 				adamOptimizer(0.0001, 15);
@@ -250,8 +248,11 @@ void NNModel::fit(std::string path, int epochs, std::vector<std::string> classNa
 }
 
 Eigen::MatrixXd NNModel::predict(Eigen::MatrixXd x) {
-	propagateInput(x);
-	return layers[layers.size() - 1].layerOutput;
+	return propagateInput(Tensor::tensorWrap(x)).matrix;
+}
+
+Eigen::MatrixXd NNModel::predict(std::vector < std::vector < Eigen::MatrixXd > > x) {
+	return propagateInput(Tensor::tensorWrap(x)).matrix;
 }
 
 double NNModel::calcAccuracy(std::vector<std::vector<double>> input, std::vector<double> y, double delimiter) {
@@ -280,4 +281,13 @@ double NNModel::calcAccuracy(std::vector<std::vector<double>> input, std::vector
 	}
 	absSum /= numLabels;
 	return 100 * (1 - absSum);
+}
+
+double NNModel::calcAccuracy(std::vector < std::vector < Eigen::MatrixXd > > input, std::vector<std::string> yTrue) {
+
+	Eigen::MatrixXd yHat = predict(input);
+
+	for (int z = 0; z < yHat.size(); z++) {
+		auto max = yHat.row(z).maxCoeff();
+	}
 }

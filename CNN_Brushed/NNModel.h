@@ -53,7 +53,12 @@ public:
 
 	void fit(std::string path, int epochs, std::vector<std::string> classNamesS);
 
+	// Use templates maybe?
 	Eigen::MatrixXd predict(Eigen::MatrixXd x);
 
+	Eigen::MatrixXd predict(std::vector < std::vector < Eigen::MatrixXd > > x);
+
 	double calcAccuracy(std::vector<std::vector<double>> input, std::vector<double> y, double delimiter);
+
+	double calcAccuracy(std::vector < std::vector < Eigen::MatrixXd > > input, std::vector<std::string> yTrue);
 };

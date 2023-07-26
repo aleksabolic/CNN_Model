@@ -73,6 +73,7 @@ Tensor ConvoLayer::forward(Tensor inputTensor){
 	}
 
 	// <----------------Calculate the nodeGrad------------------>
+	
 
 
 	return Tensor::tensorWrap(layerOutput);

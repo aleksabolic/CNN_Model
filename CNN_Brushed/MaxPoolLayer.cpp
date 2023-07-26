@@ -80,3 +80,7 @@ Tensor MaxPoolLayer::backward(Tensor dyTensor) {
 	}
 	return Tensor::tensorWrap(gradGate);
 }
+
+void MaxPoolLayer::gradientDescent(double alpha) {
+	// Nothing to do here
+}

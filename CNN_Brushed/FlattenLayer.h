@@ -14,4 +14,6 @@ public:
 	Tensor forward(Tensor input) override;
 
 	Tensor backward(Tensor dy) override;
+
+	void gradientDescent(double alpha) override;
 };

@@ -31,5 +31,5 @@ public:
 
 	Tensor backward(Tensor dyTensor) override;
 
-	void gradientDescent(double alpha);
+	void gradientDescent(double alpha) override;
 };

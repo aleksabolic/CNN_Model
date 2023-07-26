@@ -29,7 +29,7 @@ private:
 
 	Eigen::MatrixXd calcCostGradient(Eigen::MatrixXd yHat, std::vector<double> y);
 
-	void adamOptimizer(double alpha, double T, double e = 10e-7, double beta1 = 0.9, double beta2 = 0.999);
+	//void adamOptimizer(double alpha, double T, double e = 10e-7, double beta1 = 0.9, double beta2 = 0.999);
 
 public:
 
@@ -38,6 +38,8 @@ public:
 	NNModel(const std::vector<Layers*>& layersInput);
 
 	double calcCost(Eigen::MatrixXd x, std::vector<double> y);
+
+	double calcCost(std::vector < std::vector < Eigen::MatrixXd > > x, std::vector<std::string> yTrue);
 
 	// compilation for 1d inputs 
 	void compile(int batchSize1, int inputSize);

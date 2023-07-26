@@ -50,3 +50,7 @@ Tensor FlattenLayer::backward(Tensor dyTensor) {
 
 	return Tensor::tensorWrap(output);
 }
+
+void FlattenLayer::gradientDescent(double alpha) {
+	// Nothing to do here
+}

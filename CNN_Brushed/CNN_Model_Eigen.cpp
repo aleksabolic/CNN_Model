@@ -50,7 +50,19 @@ int main() {
 
 	auto start = std::chrono::high_resolution_clock::now();
 
-	std::vector<Layers*> input = {
+	std::vector<std::shared_ptr<Layers>> input;
+	input.push_back(std::make_shared<ConvoLayer>(64,3,pair(1,1),1, "relu"));
+	input.push_back(std::make_shared<MaxPoolLayer>(3,1));
+	input.push_back(std::make_shared<ConvoLayer>(64, 3, pair(1, 1), 1, "relu"));
+	input.push_back(std::make_shared<MaxPoolLayer>(3,1));
+	input.push_back(std::make_shared<ConvoLayer>(32, 3, pair(1, 1), 1, "relu"));
+	input.push_back(std::make_shared<MaxPoolLayer>(3,1));
+	input.push_back(std::make_shared<FlattenLayer>());
+	input.push_back(std::make_shared<DenseLayer>(256,"relu"));
+	input.push_back(std::make_shared<DenseLayer>(82, "softmax"));
+
+
+	/*std::vector<Layers*> input = {
 		&ConvoLayer(64, 3, pair(1,1), 1, "relu"),
 		&MaxPoolLayer(3,1),
 		&ConvoLayer(64, 3, pair(1,1), 1, "relu"),
@@ -60,13 +72,16 @@ int main() {
 		&FlattenLayer(),
 		&DenseLayer(256,"relu"),
 		&DenseLayer(82, "softmax")
-	};
+	};*/
 
 	NNModel model(input);
 
-	//model.compile(256, xTrain[0].size());
+	model.compile(32, 3, 45, 45);
 
-	//model.fit(xTrain, yTrain, 10, 1);
+	std::string path = "C:\\Users\\aleks\\OneDrive\\Desktop\\Math_Recognition\\extracted_images";
+	std::vector<std::string> classNames = ImageLoader::subfoldersNames(path);
+
+	model.fit(path, 4, classNames);
 
 	////Calculate the accuracy
 	//std::cout << "Accuracy: " << model.calcAccuracy(xTest, yTest, 0.5) << std::endl;

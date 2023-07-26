@@ -143,6 +143,19 @@ double NNModel::calcCost(Eigen::MatrixXd x, std::vector<double> y) {
 	return cost / y.size();
 }
 
+double NNModel::calcCost(std::vector < std::vector < Eigen::MatrixXd > > x, std::vector<std::string> yTrue) {
+	double cost = 0.0;
+
+	Eigen::MatrixXd yHat = propagateInput(Tensor::tensorWrap(x)).matrix;
+
+	for (int z = 0; z < yTrue.size(); z++) {
+		int yTrueIndex = classNames[yTrue[z]];
+		double loss = -log(yHat(z,yTrueIndex));
+		cost += loss;
+	}
+	return cost / yTrue.size();
+}
+
 
 void NNModel::fit(std::vector<std::vector<double>> input, std::vector<double> y, int epochs, double alpha, bool shuffle = false) {
 
@@ -196,7 +209,7 @@ void NNModel::fit(std::vector<std::vector<double>> input, std::vector<double> y,
 				propagateGradient(Tensor::tensorWrap(dy));
 
 
-				adamOptimizer(0.0001, 15);
+				//adamOptimizer(0.0001, 15);
 
 				/*for (DenseLayer& layer : layers) {
 					layer.gradientDescent(alpha);
@@ -230,7 +243,12 @@ void NNModel::train(std::vector<std::vector<Eigen::MatrixXd>> dataSet, std::vect
 	Eigen::MatrixXd dy = softmaxGradient(yHat, dataLabels); // Softmax gradient
 	propagateGradient(Tensor::tensorWrap(dy));
 
-	adamOptimizer(0.0001, 15);
+	//adamOptimizer(0.0001, 15);
+
+	// gradeint descent
+	for (auto& layer : layers) {
+		layer->gradientDescent(0.0001);
+	}
 }
 
 void NNModel::fit(std::string path, int epochs, std::vector<std::string> classNamesS) {
@@ -241,9 +259,11 @@ void NNModel::fit(std::string path, int epochs, std::vector<std::string> classNa
 	}
 
 	for (int w = 0; w < epochs; w++) {
-		ImageLoader::readImages(path, batchSize, [this](vector<vector<Eigen::MatrixXd>> dataSet, vector<std::string> dataLabels) {
+		ImageLoader::readImages(path, batchSize, [this](std::vector<std::vector<Eigen::MatrixXd>> dataSet, std::vector<std::string> dataLabels) {
 			this->train(dataSet, dataLabels);
 			});
+
+		std::cout << "Epoch: " << w << " Cost: " << std::endl;
 	}
 }
 
@@ -277,7 +297,7 @@ double NNModel::calcAccuracy(std::vector<std::vector<double>> input, std::vector
 	double absSum = 0;
 	int numLabels = y.size();
 	for (int i = 0; i < numLabels; i++) {
-		absSum += abs(yPred[i] - y[i]);
+		absSum += std::abs(yPred[i] - y[i]);
 	}
 	absSum /= numLabels;
 	return 100 * (1 - absSum);
@@ -287,7 +307,14 @@ double NNModel::calcAccuracy(std::vector < std::vector < Eigen::MatrixXd > > inp
 
 	Eigen::MatrixXd yHat = predict(input);
 
-	for (int z = 0; z < yHat.size(); z++) {
-		auto max = yHat.row(z).maxCoeff();
+	double correct = 0;
+	for (int z = 0; z < yHat.rows(); z++) {
+		Eigen::MatrixXd::Index maxIndex;
+		yHat.row(z).maxCoeff(&maxIndex);
+		if (classNames[yTrue[z]] == maxIndex) {
+			correct++;
+		}
 	}
+	correct /= yHat.rows();
+	return 100 * (1- correct);
 }

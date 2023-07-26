@@ -72,10 +72,6 @@ Tensor ConvoLayer::forward(Tensor inputTensor){
 		}
 	}
 
-	// <----------------Calculate the nodeGrad------------------>
-	
-
-
 	return Tensor::tensorWrap(layerOutput);
 }
 
@@ -137,4 +133,15 @@ Tensor ConvoLayer::backward(Tensor dyTensor) {
 	}
 
 	return Tensor::tensorWrap(outputGradients);
+}
+
+void ConvoLayer::gradientDescent(double alpha) {
+	for (int f = 0; f < W.size(); f++) {
+		for (int c = 0; c < W[0].size(); c++) {
+			W[f][c] -= alpha * WGradients[f][c];
+			WGradients[f][c].setZero();
+		}
+		b[f] -= alpha * BGradients[f];
+		BGradients[f] = 0;
+	}
 }

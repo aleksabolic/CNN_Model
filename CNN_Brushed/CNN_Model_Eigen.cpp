@@ -8,11 +8,11 @@
 #include <random>
 #include <Eigen/Dense>
 #include <chrono>
-//#include "./CsvLoader.cpp"
 #include <filesystem>
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/eigen.hpp>
 
+#include "Loss.h"
 #include "NNModel.h"
 #include "Layers.h"
 #include "DenseLayer.h"
@@ -51,34 +51,21 @@ int main() {
 	auto start = std::chrono::high_resolution_clock::now();
 
 	std::vector<std::shared_ptr<Layers>> input;
-	input.push_back(std::make_shared<ConvoLayer>(64,3,pair(1,1),1, "relu"));
-	input.push_back(std::make_shared<MaxPoolLayer>(3,1));
-	input.push_back(std::make_shared<ConvoLayer>(64, 3, pair(1, 1), 1, "relu"));
-	input.push_back(std::make_shared<MaxPoolLayer>(3,1));
-	input.push_back(std::make_shared<ConvoLayer>(32, 3, pair(1, 1), 1, "relu"));
-	input.push_back(std::make_shared<MaxPoolLayer>(3,1));
+	input.push_back(std::make_shared<ConvoLayer>(64,3,pair(1,1),0, "relu"));
+	input.push_back(std::make_shared<MaxPoolLayer>(2,2));
+	input.push_back(std::make_shared<ConvoLayer>(64, 3, pair(1, 1), 0, "relu"));
+	input.push_back(std::make_shared<MaxPoolLayer>(2,2));
+	input.push_back(std::make_shared<ConvoLayer>(32, 3, pair(1, 1), 0, "relu"));
+	input.push_back(std::make_shared<MaxPoolLayer>(2,2));
 	input.push_back(std::make_shared<FlattenLayer>());
 	input.push_back(std::make_shared<DenseLayer>(256,"relu"));
 	input.push_back(std::make_shared<DenseLayer>(82, "softmax"));
-
-
-	/*std::vector<Layers*> input = {
-		&ConvoLayer(64, 3, pair(1,1), 1, "relu"),
-		&MaxPoolLayer(3,1),
-		&ConvoLayer(64, 3, pair(1,1), 1, "relu"),
-		&MaxPoolLayer(3,1),
-		&ConvoLayer(32, 3, pair(1,1), 1, "relu"),
-		&MaxPoolLayer(3,1),
-		&FlattenLayer(),
-		&DenseLayer(256,"relu"),
-		&DenseLayer(82, "softmax")
-	};*/
 
 	NNModel model(input);
 
 	model.compile(32, 3, 45, 45);
 
-	std::string path = "C:\\Users\\aleks\\OneDrive\\Desktop\\Math_Recognition\\extracted_images";
+	std::string path = "C:\\Users\\aleks\\OneDrive\\Desktop\\train_images";
 	std::vector<std::string> classNames = ImageLoader::subfoldersNames(path);
 
 	model.fit(path, 4, classNames);

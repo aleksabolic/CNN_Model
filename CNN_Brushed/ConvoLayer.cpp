@@ -2,7 +2,9 @@
 #include <unordered_map>
 #include <Eigen/Dense>
 #include <algorithm>
+#include <iostream>
 #include <utility>
+#include <omp.h>
 
 #include "ConvoLayer.h"
 
@@ -35,20 +37,27 @@ std::unordered_map<std::string, int> ConvoLayer::initSizes(std::unordered_map<st
 	return outputSizes;
 }
 
-Tensor ConvoLayer::forward(Tensor inputTensor){
+Tensor ConvoLayer::forward(Tensor inputTensor) {
 
 	std::vector<std::vector<Eigen::MatrixXd>> input = inputTensor.matrix4d;
 
 	// add the padding
-	for (int z = 0; z < batchSize; z++) {
-		for (int c = 0; c < input[0].size(); c++) {
-			x[z][c].setZero();  // Set the entire matrix to zero
-			x[z][c].block(padding, padding, input[0][0].rows(), input[0][0].cols()) = input[z][c];
+	if (padding) {
+		#pragma omp parallel for
+		for (int z = 0; z < batchSize; z++) {
+			for (int c = 0; c < input[0].size(); c++) {
+				x[z][c].setZero();  // Set the entire matrix to zero
+				x[z][c].block(padding, padding, input[0][0].rows(), input[0][0].cols()) = input[z][c];
+			}
 		}
 	}
-
-
+	else {
+		x = input;
+	}
+		
+	#pragma omp parallel for
 	for (int z = 0; z < batchSize; z++) {
+		#pragma omp parallel for
 		for (int f = 0; f < W.size(); f++) {
 			for (int i = 0; i < layerOutput[0][0].rows(); i++) {
 				for (int j = 0; j < layerOutput[0][0].cols(); j++) {
@@ -88,8 +97,9 @@ Tensor ConvoLayer::backward(Tensor dyTensor) {
 
 
 	// Calculate WGradient
+	#pragma omp parallel for
 	for (int z = 0; z < batchSize; z++) {
-
+		#pragma omp parallel for
 		for (int f = 0; f < W.size(); f++) {
 			for (int c = 0; c < W[0].size(); c++) {
 
@@ -97,7 +107,7 @@ Tensor ConvoLayer::backward(Tensor dyTensor) {
 					for (int j = 0; j < kernelSize; j++) {
 
 						Eigen::Map<Eigen::VectorXd> v1(dy[z][f].data(), dy[z][f].size());
-						Eigen::Map<Eigen::VectorXd> v2(x[z][c].block(i, j, kernelSize, kernelSize).data(), kernelSize * kernelSize);
+						Eigen::Map<Eigen::VectorXd> v2(x[z][c].block(i, j, dy[z][f].rows(), dy[z][f].cols()).data(), dy[z][f].size());
 						WGradients[f][c](i, j) += v1.dot(v2);
 
 					}
@@ -111,9 +121,11 @@ Tensor ConvoLayer::backward(Tensor dyTensor) {
 
 
 	// Calculate output gradient
+	#pragma omp parallel for
 	for (int z = 0; z < batchSize; z++) {
+		#pragma omp parallel for
 		for (int c = 0; c < W[0].size(); c++) {
-
+			#pragma omp parallel for
 			for (int f = 0; f < W.size(); f++) {
 
 				for (int i = 0; i < layerOutput[0][0].rows(); i++) {
@@ -121,11 +133,7 @@ Tensor ConvoLayer::backward(Tensor dyTensor) {
 						int ii = i * strides.first;
 						int jj = j * strides.second;
 
-						for (int iw = 0; iw < kernelSize; iw++) {
-							for (int jw = 0; jw < kernelSize; jw++) {
-								outputGradients[z][c](ii + iw, jj + jw) += dy[z][c](i, j) * W[f][c](iw, jw);
-							}
-						}
+						outputGradients[z][c].block(ii,jj,kernelSize, kernelSize) += dy[z][f](i, j) * W[f][c];
 					}
 				}
 			}

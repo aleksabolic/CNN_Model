@@ -1,8 +1,8 @@
 #include <string>
 #include <filesystem>
+#include <Eigen/Dense>
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/eigen.hpp>
-#include <Eigen/Dense>
 
 #include "ImageLoader.h"
 
@@ -19,7 +19,6 @@ vector<string> ImageLoader::subfoldersNames(string directory) {
 			subfolders.push_back(entry.path().filename().string());
 		}
 	}
-
 	return subfolders;
 }
 
@@ -34,6 +33,9 @@ void ImageLoader::readImages(string directory, int batchSize, std::function<void
 			string path = entry.path().string();
 			Mat image = imread(path);
 			if (!image.empty()) {
+				image.convertTo(image, CV_64F); // Convert image to double precision
+				image /= 255.0; // Rescale image
+
 				// Split the image into its color channels
 				vector<Mat> channels(3);
 				split(image, channels);
@@ -65,7 +67,11 @@ void ImageLoader::readImages(string directory, int batchSize, std::function<void
 				vector<vector<Eigen::MatrixXd>>().swap(dataSet);
 				vector<std::string>().swap(dataLabels);
 				size = 0;
+
+				std::cout<< "Batch loaded" << std::endl;
 			}
 		}
+
 	}
+
 }

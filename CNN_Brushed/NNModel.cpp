@@ -2,7 +2,7 @@
 #include <Eigen/Dense>
 #include <unordered_map>
 #include <algorithm>
-
+#include <chrono>
 #include "NNModel.h"
 
 #include "DenseLayer.h"
@@ -12,9 +12,9 @@
 
 #include "ImageLoader.h"
 
-#include "Loss.h"
+//#include "Loss.h"
 
-NNModel::NNModel(const std::vector<Layers*>& layersInput) : layers(layersInput) {}
+NNModel::NNModel(const std::vector<std::shared_ptr<Layers>>& layersInput) : layers(layersInput) {}
 
 Tensor NNModel::propagateInput(const Tensor& x) {
 	Tensor A = x;
@@ -137,8 +137,8 @@ double NNModel::calcCost(Eigen::MatrixXd x, std::vector<double> y) {
 
 	for (int i = 0; i < y.size(); i++) {
 
-		double loss = Loss::binaryCrossEntropy(yHat(i, 0), y[i]);
-		cost += loss;
+		//double loss = Loss::binaryCrossEntropy(yHat(i, 0), y[i]);
+		//cost += loss;
 	}
 	return cost / y.size();
 }
@@ -156,8 +156,19 @@ double NNModel::calcCost(std::vector < std::vector < Eigen::MatrixXd > > x, std:
 	return cost / yTrue.size();
 }
 
+double NNModel::calcBatchCost(Eigen::MatrixXd yHat, std::vector<std::string> yTrue) {
+	double cost = 0.0;
 
-void NNModel::fit(std::vector<std::vector<double>> input, std::vector<double> y, int epochs, double alpha, bool shuffle = false) {
+	for (int z = 0; z < yTrue.size(); z++) {
+		int yTrueIndex = classNames[yTrue[z]];
+		double loss = -log(yHat(z, yTrueIndex));
+		cost += loss;
+	}
+	return cost / yTrue.size();
+}
+
+
+void NNModel::fit(std::vector<std::vector<double>> input, std::vector<double> y, int epochs, double alpha, bool shuffle) {
 
 
 	Eigen::MatrixXd x(input.size(), input[0].size());
@@ -237,7 +248,8 @@ Eigen::MatrixXd NNModel::softmaxGradient(Eigen::MatrixXd yHat, std::vector<std::
 }
 
 void NNModel::train(std::vector<std::vector<Eigen::MatrixXd>> dataSet, std::vector<std::string> dataLabels) {
-	
+	std::cout<<"Started training..." << std::endl;
+
 	Eigen::MatrixXd yHat = propagateInput(Tensor::tensorWrap(dataSet)).matrix;
 
 	Eigen::MatrixXd dy = softmaxGradient(yHat, dataLabels); // Softmax gradient
@@ -249,6 +261,8 @@ void NNModel::train(std::vector<std::vector<Eigen::MatrixXd>> dataSet, std::vect
 	for (auto& layer : layers) {
 		layer->gradientDescent(0.0001);
 	}
+
+	std::cout << "Finished training...  Cost: " << calcBatchCost(yHat, dataLabels) <<std::endl;
 }
 
 void NNModel::fit(std::string path, int epochs, std::vector<std::string> classNamesS) {

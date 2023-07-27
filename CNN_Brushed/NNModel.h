@@ -11,7 +11,7 @@
 
 #include "ImageLoader.h"
 
-#include "./Loss.cpp"
+#include "Loss.h"
 #include <algorithm>
 
 class NNModel {
@@ -33,13 +33,15 @@ private:
 
 public:
 
-	std::vector<Layers*> layers;
+	std::vector<std::shared_ptr<Layers>> layers;
 
-	NNModel(const std::vector<Layers*>& layersInput);
+	NNModel(const std::vector<std::shared_ptr<Layers>>& layersInput);
 
 	double calcCost(Eigen::MatrixXd x, std::vector<double> y);
 
 	double calcCost(std::vector < std::vector < Eigen::MatrixXd > > x, std::vector<std::string> yTrue);
+
+	double calcBatchCost(Eigen::MatrixXd yHat, std::vector<std::string> yTrue);
 
 	// compilation for 1d inputs 
 	void compile(int batchSize1, int inputSize);

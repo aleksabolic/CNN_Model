@@ -42,10 +42,10 @@
     <ClCompile Include="NNModel.cpp">
       <Filter>Resource Files</Filter>
     </ClCompile>
-    <ClCompile Include="Loss.cpp">
+    <ClCompile Include="ImageLoader.cpp">
       <Filter>Resource Files</Filter>
     </ClCompile>
-    <ClCompile Include="ImageLoader.cpp">
+    <ClCompile Include="Loss.cpp">
       <Filter>Resource Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -71,13 +71,13 @@
     <ClInclude Include="NNModel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Loss.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="ImageLoader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Layers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Loss.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

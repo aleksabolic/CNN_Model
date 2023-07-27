@@ -96,6 +96,7 @@ Tensor DenseLayer::forward(Tensor inputTensor) {
 		}
 
 		// Calculate softmax node grads
+		#pragma omp parallel for
 		for (int z = 0; z < batchSize; z++) {
 			for (int i = 0; i < numNodes; i++) {
 				for (int j = 0; j < numNodes; j++) {

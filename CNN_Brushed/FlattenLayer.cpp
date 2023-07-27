@@ -1,5 +1,6 @@
 #include <Eigen/Dense>
 #include <vector>
+#include <iostream>
 #include <unordered_map>
 #include "FlattenLayer.h"
 
@@ -22,6 +23,7 @@ Tensor FlattenLayer::forward(Tensor inputTensor) {
 
 	Eigen::MatrixXd output = Eigen::MatrixXd(batchSize, input[0].size() * input[0][0].size());
 
+	#pragma omp parallel for
 	for (int z = 0; z < input.size(); z++) {
 		int index = 0;
 		for (int c = 0; c < input[0].size(); c++) {
@@ -40,7 +42,8 @@ Tensor FlattenLayer::backward(Tensor dyTensor) {
 
 	std::vector<std::vector<Eigen::MatrixXd>> output = std::vector<std::vector<Eigen::MatrixXd>>(batchSize, std::vector<Eigen::MatrixXd>(inputChannels, Eigen::MatrixXd(inputHeight, inputWidth)));
 
-	for (int z = 0; z < dy.size(); z++) {
+	#pragma omp parallel for
+	for (int z = 0; z < dy.rows(); z++) {
 		int matrixSize = inputHeight * inputWidth;
 		for (int c = 0; c < inputChannels; c++) {
 			Eigen::VectorXd channel = dy.row(z).segment(c * matrixSize, matrixSize);

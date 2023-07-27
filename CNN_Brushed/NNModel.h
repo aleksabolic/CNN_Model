@@ -65,4 +65,8 @@ public:
 	double calcAccuracy(std::vector<std::vector<double>> input, std::vector<double> y, double delimiter);
 
 	double calcAccuracy(std::vector < std::vector < Eigen::MatrixXd > > input, std::vector<std::string> yTrue);
+
+	void loadWeights(const std::string& filename);
+
+	void saveWeights(const std::string& filename);
 };

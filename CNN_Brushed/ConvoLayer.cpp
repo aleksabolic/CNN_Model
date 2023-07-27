@@ -5,12 +5,15 @@
 #include <iostream>
 #include <utility>
 #include <omp.h>
+#include <fstream>
+
 
 #include "ConvoLayer.h"
 
 ConvoLayer::ConvoLayer(int numFilters, int kernelSize, std::pair<int, int> strides, int padding, std::string activation) : numFilters(numFilters), kernelSize(kernelSize), strides(strides), activation(activation), padding(padding) {
 	b = Eigen::VectorXd(numFilters);
 	BGradients = Eigen::VectorXd(numFilters);
+	trainable = true;
 }
 
 std::unordered_map<std::string, int> ConvoLayer::initSizes(std::unordered_map<std::string, int> sizes) {
@@ -152,4 +155,45 @@ void ConvoLayer::gradientDescent(double alpha) {
 		b[f] -= alpha * BGradients[f];
 		BGradients[f] = 0;
 	}
+}
+
+void ConvoLayer::saveWeights(const std::string& filename) {
+	std::ofstream outfile(filename, std::ios::binary);
+
+	for (const auto& w_layer : W) {
+		for (const auto& w_matrix : w_layer) {
+			Eigen::MatrixXd::Index rows = w_matrix.rows(), cols = w_matrix.cols();
+			outfile.write((char*)(&rows), sizeof(Eigen::MatrixXd::Index));
+			outfile.write((char*)(&cols), sizeof(Eigen::MatrixXd::Index));
+			outfile.write((char*)w_matrix.data(), rows * cols * sizeof(Eigen::MatrixXd::Scalar));
+		}
+	}
+
+	Eigen::VectorXd::Index b_size = b.size();
+	outfile.write((char*)(&b_size), sizeof(Eigen::VectorXd::Index));
+	outfile.write((char*)b.data(), b_size * sizeof(Eigen::VectorXd::Scalar));
+
+	outfile.close();
+}
+
+void ConvoLayer::loadWeights(const std::string& filename) {
+	std::ifstream infile(filename, std::ios::binary);
+
+	Eigen::MatrixXd::Index rows = 0, cols = 0;
+
+	for (auto& filter : W) {
+		for (auto& w_matrix : filter) {
+			infile.read((char*)(&rows), sizeof(Eigen::MatrixXd::Index));
+			infile.read((char*)(&cols), sizeof(Eigen::MatrixXd::Index));
+			w_matrix = Eigen::MatrixXd(rows, cols);
+			infile.read((char*)w_matrix.data(), rows * cols * sizeof(Eigen::MatrixXd::Scalar));
+		}
+	}
+
+	Eigen::VectorXd::Index b_size = 0;
+	infile.read((char*)(&b_size), sizeof(Eigen::VectorXd::Index));
+	b = Eigen::VectorXd(b_size);
+	infile.read((char*)b.data(), b_size * sizeof(Eigen::VectorXd::Scalar));
+
+	infile.close();
 }

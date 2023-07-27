@@ -19,6 +19,7 @@ private:
 	Eigen::VectorXd b, BGradients; //(numFilters)
 	std::vector<std::vector<Eigen::MatrixXd>> x; // (batch_size, channels, h, w)
 public:
+
 	ConvoLayer(int numFilters, int kernelSize, std::pair<int, int> strides, int padding, std::string activation);
 
 	std::unordered_map<std::string, int> initSizes(std::unordered_map<std::string, int> sizes) override;
@@ -28,4 +29,8 @@ public:
 	Tensor backward(Tensor dyTensor) override;
 
 	void gradientDescent(double alpha) override;
+
+	void saveWeights(const std::string& filename) override;
+
+	void loadWeights(const std::string& filename) override;
 };

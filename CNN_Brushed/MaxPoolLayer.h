@@ -20,4 +20,8 @@ public:
 	Tensor backward(Tensor dyTensor) override;
 
 	void gradientDescent(double alpha) override;
+
+	void saveWeights(const std::string& filename) override;
+
+	void loadWeights(const std::string& filename) override;
 };

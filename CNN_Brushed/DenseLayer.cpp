@@ -2,6 +2,7 @@
 #include <Eigen/Dense>
 #include <iostream>
 #include <unordered_map>
+#include <fstream>
 
 #include "DenseLayer.h"
 #include "Sigmoid.h"
@@ -10,6 +11,7 @@
 DenseLayer::DenseLayer(int numNodes, const std::string& activation) : activation(activation), numNodes(numNodes) {
 	BGradients = Eigen::RowVectorXd::Zero(numNodes);
 	b = Eigen::RowVectorXd::Random(numNodes);
+	trainable = true;
 }
 
 std::unordered_map<std::string, int> DenseLayer::initSizes(std::unordered_map<std::string, int> sizes) {
@@ -147,3 +149,34 @@ void DenseLayer::gradientDescent(double alpha) {
 	BGradients.setZero();
 }
 
+void DenseLayer::saveWeights(const std::string& filename) {
+	std::ofstream outfile(filename, std::ios::binary);
+
+	Eigen::MatrixXd::Index w_rows = w.rows(), w_cols = w.cols();
+	outfile.write((char*)(&w_rows), sizeof(Eigen::MatrixXd::Index));
+	outfile.write((char*)(&w_cols), sizeof(Eigen::MatrixXd::Index));
+	outfile.write((char*)w.data(), w_rows * w_cols * sizeof(Eigen::MatrixXd::Scalar));
+
+	Eigen::RowVectorXd::Index b_cols = b.cols();
+	outfile.write((char*)(&b_cols), sizeof(Eigen::RowVectorXd::Index));
+	outfile.write((char*)b.data(), b_cols * sizeof(Eigen::RowVectorXd::Scalar));
+
+	outfile.close();
+}
+
+void DenseLayer::loadWeights(const std::string& filename) {
+	std::ifstream infile(filename, std::ios::binary);
+
+	Eigen::MatrixXd::Index w_rows = 0, w_cols = 0;
+	infile.read((char*)(&w_rows), sizeof(Eigen::MatrixXd::Index));
+	infile.read((char*)(&w_cols), sizeof(Eigen::MatrixXd::Index));
+	w = Eigen::MatrixXd(w_rows, w_cols);
+	infile.read((char*)w.data(), w_rows * w_cols * sizeof(Eigen::MatrixXd::Scalar));
+
+	Eigen::RowVectorXd::Index b_cols = 0;
+	infile.read((char*)(&b_cols), sizeof(Eigen::RowVectorXd::Index));
+	b = Eigen::RowVectorXd(b_cols);
+	infile.read((char*)b.data(), b_cols * sizeof(Eigen::RowVectorXd::Scalar));
+
+	infile.close();
+}

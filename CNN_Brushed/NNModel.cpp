@@ -3,6 +3,8 @@
 #include <unordered_map>
 #include <algorithm>
 #include <chrono>
+#include <fstream>
+
 #include "NNModel.h"
 
 #include "DenseLayer.h"
@@ -46,6 +48,26 @@ void NNModel::compile(int batchSize1, int inputSize) {
 	sizes["batch size"] = batchSize;
 
 	propagateSize(sizes);
+}
+
+void NNModel::saveWeights(const std::string& modelName) {
+
+	for (int i = 0; i < layers.size(); i++) {
+		if (layers[i]->trainable) {
+			std::string file = modelName + std::to_string(i);
+			layers[i]->saveWeights(file);
+		}
+	}
+}
+
+void NNModel::loadWeights(const std::string& modelName) {
+	
+	for (int i = 0; i < layers.size(); i++) {
+		if (layers[i]->trainable) {
+			std::string file = modelName + std::to_string(i);
+			layers[i]->loadWeights(file);
+		}
+	}
 }
 
 void NNModel::compile(int batchSize1, int inputChannels, int inputHeight, int inputWidth) {
@@ -272,12 +294,13 @@ void NNModel::fit(std::string path, int epochs, std::vector<std::string> classNa
 		classNames[classNamesS[i]] = i;
 	}
 
-	for (int w = 0; w < epochs; w++) {
+	for (int e = 0; e < epochs; e++) {
 		ImageLoader::readImages(path, batchSize, [this](std::vector<std::vector<Eigen::MatrixXd>> dataSet, std::vector<std::string> dataLabels) {
 			this->train(dataSet, dataLabels);
 			});
 
-		std::cout << "Epoch: " << w << " Cost: " << std::endl;
+		std::cout << "Epoch: " << e << std::endl;
+		saveWeights("./Model/firstModel");
 	}
 }
 

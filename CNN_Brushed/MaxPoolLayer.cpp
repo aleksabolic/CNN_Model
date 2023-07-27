@@ -6,7 +6,9 @@
 
 #include "MaxPoolLayer.h"
 
-MaxPoolLayer::MaxPoolLayer(int kernelSize, int stride) : kernelSize(kernelSize), stride(stride) {}
+MaxPoolLayer::MaxPoolLayer(int kernelSize, int stride) : kernelSize(kernelSize), stride(stride) {
+	trainable = false;
+}
 
 std::unordered_map<std::string, int> MaxPoolLayer::initSizes(std::unordered_map<std::string, int> sizes) {
 	int inputChannels = sizes["input channels"];
@@ -88,5 +90,13 @@ Tensor MaxPoolLayer::backward(Tensor dyTensor) {
 }
 
 void MaxPoolLayer::gradientDescent(double alpha) {
+	// Nothing to do here
+}
+
+void MaxPoolLayer::saveWeights(const std::string& filename) {
+	// Nothing to do here
+}
+
+void MaxPoolLayer::loadWeights(const std::string& filename) {
 	// Nothing to do here
 }

@@ -9,6 +9,8 @@ class FlattenLayer : public Layers{
 public:
 	int batchSize, inputChannels, inputHeight, inputWidth;
 
+	FlattenLayer();
+
 	std::unordered_map<std::string, int> initSizes(std::unordered_map<std::string, int> sizes) override;
 
 	Tensor forward(Tensor input) override;
@@ -16,4 +18,8 @@ public:
 	Tensor backward(Tensor dy) override;
 
 	void gradientDescent(double alpha) override;
+
+	void saveWeights(const std::string& filename) override;
+
+	void loadWeights(const std::string& filename) override;
 };

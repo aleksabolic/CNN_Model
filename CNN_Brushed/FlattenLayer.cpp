@@ -4,6 +4,10 @@
 #include <unordered_map>
 #include "FlattenLayer.h"
 
+FlattenLayer::FlattenLayer() {
+	trainable = false;
+}
+
 std::unordered_map<std::string, int> FlattenLayer::initSizes(std::unordered_map<std::string, int> sizes) {
 	inputChannels = sizes["input channels"];
 	inputHeight = sizes["input height"];
@@ -55,5 +59,13 @@ Tensor FlattenLayer::backward(Tensor dyTensor) {
 }
 
 void FlattenLayer::gradientDescent(double alpha) {
+	// Nothing to do here
+}
+
+void FlattenLayer::saveWeights(const std::string& filename) {
+	// Nothing to do here
+}
+
+void FlattenLayer::loadWeights(const std::string& filename) {
 	// Nothing to do here
 }

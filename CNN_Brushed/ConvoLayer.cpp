@@ -103,32 +103,6 @@ Tensor ConvoLayer::forward(Tensor inputTensor) {
 		}
 
 	}
-		
-	//#pragma omp parallel for
-	//for (int z = 0; z < batchSize; z++) {
-	//	#pragma omp parallel for
-	//	for (int f = 0; f < W.size(); f++) {
-	//		for (int i = 0; i < layerOutput[0][0].rows(); i++) {
-	//			for (int j = 0; j < layerOutput[0][0].cols(); j++) {
-	//				int ii = i * strides.first;
-	//				int jj = j * strides.second;
-
-	//				double dotP = 0.0;
-	//				for (int c = 0; c < x[0].size(); c++) {
-	//					Eigen::Map<Eigen::VectorXd> v1(W[f][c].data(), W[f][c].size());
-	//					Eigen::Map<Eigen::VectorXd> v2(x[z][c].block(ii, jj, kernelSize, kernelSize).data(), kernelSize * kernelSize);
-	//					dotP += v1.dot(v2);
-	//				}
-
-	//				dotP += b[f];
-	//				// apply activation function (relu in this case)
-	//				nodeGrads[z][f](i, j) = dotP > 0 ? 1 : 0;
-	//				if (activation == "relu") dotP = std::max(0.0, dotP);
-	//				layerOutput[z][f](i, j) = dotP;
-	//			}
-	//		}
-	//	}
-	//}
 
 	return Tensor::tensorWrap(layerOutput);
 }
@@ -147,42 +121,48 @@ Tensor ConvoLayer::backward(Tensor dyTensor) {
 
 	// Calculate WGradient
 	#pragma omp parallel for
-	for (int z = 0; z < batchSize; z++) {
+	for (int f = 0; f < numFilters; f++) {
+		int inputChannels = x[0].size();
+		int outputHeight = layerOutput[0][0].rows();
+		int outputWidth = layerOutput[0][0].cols();
+		int outputSize = outputHeight * outputWidth;
+
 		#pragma omp parallel for
-		for (int f = 0; f < W.size(); f++) {
-			for (int c = 0; c < W[0].size(); c++) {
+		for (int i = 0; i < kernelSize; i++) {
+			for (int j = 0; j < kernelSize; j++) {
 
-				for (int i = 0; i < kernelSize; i++) {
-					for (int j = 0; j < kernelSize; j++) {
-
-						Eigen::Map<Eigen::VectorXd> v1(dy[z][f].data(), dy[z][f].size());
-						Eigen::Map<Eigen::VectorXd> v2(x[z][c].block(i, j, dy[z][f].rows(), dy[z][f].cols()).data(), dy[z][f].size());
-						WGradients[f][c](i, j) += v1.dot(v2);
-
+				Eigen::MatrixXd X(inputChannels, batchSize * outputSize);
+				// Filling the X matrix
+				for (int c = 0; c < inputChannels; ++c) {
+					for (int z = 0; z < batchSize; ++z) {
+						X.row(c).segment(z * outputSize, outputSize) = Eigen::Map<Eigen::RowVectorXd>(x[z][c].block(i, j, outputHeight, outputWidth).data(), outputHeight * outputWidth);
 					}
 				}
+
+				Eigen::VectorXd DY = Eigen::VectorXd(batchSize * outputSize);
+				// Filling the DY vector
+				for (int z = 0; z < batchSize; z++) {
+					DY.segment(z * outputSize, outputSize) = Eigen::VectorXd::Map(dy[z][f].data(), outputSize);
+				}
+
+				Eigen::MatrixXd WGradientrow = X * DY;
+				for (int c = 0; c < inputChannels; c++) {
+					WGradients[f][c](i, j) = WGradientrow(c,0);
+				}
 			}
-
-			//  Calculate BGradient
-			BGradients[f] += dy[z][f].sum();
 		}
-	}
 
+	}
 
 	// Calculate output gradient
 	#pragma omp parallel for
 	for (int z = 0; z < batchSize; z++) {
-		#pragma omp parallel for
-		for (int c = 0; c < W[0].size(); c++) {
-			#pragma omp parallel for
-			for (int f = 0; f < W.size(); f++) {
-
-				for (int i = 0; i < layerOutput[0][0].rows(); i++) {
-					for (int j = 0; j < layerOutput[0][0].cols(); j++) {
-						int ii = i * strides.first;
-						int jj = j * strides.second;
-
-						outputGradients[z][c].block(ii,jj,kernelSize, kernelSize) += dy[z][f](i, j) * W[f][c];
+		for (int c = 0; c < x[0].size(); c++) {
+			for (int f = 0; f < numFilters; f++) {
+				Eigen::MatrixXd dyf = dy[z][f];
+				for (int i = 0; i < kernelSize; i++) {
+					for (int j = 0; j < kernelSize; j++) {
+						outputGradients[z][c].block(i, j, dyf.rows(), dyf.cols()) += dyf * W[f][c](i, j);
 					}
 				}
 			}

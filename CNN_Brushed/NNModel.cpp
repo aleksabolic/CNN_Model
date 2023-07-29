@@ -281,7 +281,7 @@ void NNModel::train(std::vector<std::vector<Eigen::MatrixXd>> dataSet, std::vect
 
 	// gradeint descent
 	for (auto& layer : layers) {
-		layer->gradientDescent(0.0001);
+		layer->gradientDescent(0.01);
 	}
 
 	std::cout << "Finished training...  Cost: " << calcBatchCost(yHat, dataLabels) <<std::endl;

@@ -57,32 +57,78 @@ Tensor ConvoLayer::forward(Tensor inputTensor) {
 	else {
 		x = input;
 	}
-		
+
+	// if its the first layer
 	#pragma omp parallel for
 	for (int z = 0; z < batchSize; z++) {
-		#pragma omp parallel for
-		for (int f = 0; f < W.size(); f++) {
+		int inputChannels = x[0].size();
+		Eigen::MatrixXd X = Eigen::MatrixXd(kernelSize * kernelSize * inputChannels, layerOutput[0][0].size());
+
+		// filling the X matrix
+		for (int i = 0; i < layerOutput[0][0].rows(); i++) {
+			for (int j = 0; j < layerOutput[0][0].cols(); j++) {
+				int ii = i * strides.first;
+				int jj = j * strides.second;
+
+				for (int c = 0; c < inputChannels; c++) {
+					Eigen::Map<Eigen::VectorXd> v1(x[z][c].block(ii, jj, kernelSize, kernelSize).data(), kernelSize * kernelSize);
+					X.block(c * kernelSize * kernelSize, i * layerOutput[0][0].cols() + j, kernelSize * kernelSize, 1) = v1;
+				}
+			}
+		}
+		
+		// filling the W matrix
+		Eigen::MatrixXd WMat = Eigen::MatrixXd(numFilters, kernelSize * kernelSize * inputChannels);
+		for (int f = 0; f < numFilters; f++) {
+			for (int c = 0; c < inputChannels; c++) {
+				Eigen::Map<Eigen::RowVectorXd> v1(W[f][c].data(), W[f][c].size());
+				WMat.block(f, c * kernelSize * kernelSize, 1, kernelSize * kernelSize) = v1;
+			}
+		}
+
+		// calculate the output
+		Eigen::MatrixXd output = WMat * X;
+
+		for (int f = 0; f < numFilters; f++) {
 			for (int i = 0; i < layerOutput[0][0].rows(); i++) {
 				for (int j = 0; j < layerOutput[0][0].cols(); j++) {
-					int ii = i * strides.first;
-					int jj = j * strides.second;
-
-					double dotP = 0.0;
-					for (int c = 0; c < x[0].size(); c++) {
-						Eigen::Map<Eigen::VectorXd> v1(W[f][c].data(), W[f][c].size());
-						Eigen::Map<Eigen::VectorXd> v2(x[z][c].block(ii, jj, kernelSize, kernelSize).data(), kernelSize * kernelSize);
-						dotP += v1.dot(v2);
-					}
-
-					dotP += b[f];
+					double dotP = output(f, i * layerOutput[0][0].cols() + j) + b(f);
 					// apply activation function (relu in this case)
 					nodeGrads[z][f](i, j) = dotP > 0 ? 1 : 0;
 					if (activation == "relu") dotP = std::max(0.0, dotP);
 					layerOutput[z][f](i, j) = dotP;
 				}
+
 			}
 		}
+
 	}
+		
+	//#pragma omp parallel for
+	//for (int z = 0; z < batchSize; z++) {
+	//	#pragma omp parallel for
+	//	for (int f = 0; f < W.size(); f++) {
+	//		for (int i = 0; i < layerOutput[0][0].rows(); i++) {
+	//			for (int j = 0; j < layerOutput[0][0].cols(); j++) {
+	//				int ii = i * strides.first;
+	//				int jj = j * strides.second;
+
+	//				double dotP = 0.0;
+	//				for (int c = 0; c < x[0].size(); c++) {
+	//					Eigen::Map<Eigen::VectorXd> v1(W[f][c].data(), W[f][c].size());
+	//					Eigen::Map<Eigen::VectorXd> v2(x[z][c].block(ii, jj, kernelSize, kernelSize).data(), kernelSize * kernelSize);
+	//					dotP += v1.dot(v2);
+	//				}
+
+	//				dotP += b[f];
+	//				// apply activation function (relu in this case)
+	//				nodeGrads[z][f](i, j) = dotP > 0 ? 1 : 0;
+	//				if (activation == "relu") dotP = std::max(0.0, dotP);
+	//				layerOutput[z][f](i, j) = dotP;
+	//			}
+	//		}
+	//	}
+	//}
 
 	return Tensor::tensorWrap(layerOutput);
 }

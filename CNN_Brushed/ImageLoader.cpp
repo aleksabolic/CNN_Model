@@ -22,7 +22,7 @@ vector<string> ImageLoader::subfoldersNames(string directory) {
 	return subfolders;
 }
 
-void ImageLoader::readImages(string directory, int batchSize, std::function<void(std::vector<std::vector<Eigen::MatrixXd>>, std::vector<std::string>) > callback) {
+void ImageLoader::readImages(string directory, int batchSize, std::function<void(std::vector<std::vector<Eigen::MatrixXd>>&, std::vector<std::string>&) > callback) {
 
 	vector<vector<Eigen::MatrixXd>> dataSet;
 	vector<std::string> dataLabels;

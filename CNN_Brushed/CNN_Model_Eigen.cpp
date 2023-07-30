@@ -68,9 +68,7 @@ int main() {
 	std::string path = "C:\\Users\\aleks\\OneDrive\\Desktop\\train_images";
 	std::vector<std::string> classNames = ImageLoader::subfoldersNames(path);
 
-	//model.loadWeights("firstModel");
-
-	model.fit(path, 4, classNames);
+	model.fit(path, 2, classNames);
 
 	////Calculate the accuracy
 	//std::cout << "Accuracy: " << model.calcAccuracy(xTest, yTest, 0.5) << std::endl;

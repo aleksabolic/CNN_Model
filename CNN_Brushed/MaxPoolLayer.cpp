@@ -42,6 +42,10 @@ Tensor MaxPoolLayer::forward(Tensor inputTensor) {
 	for (int z = 0; z < batchSize; z++) {
 		#pragma omp parallel for
 		for (int c = 0; c < input[0].size(); c++) {
+
+			// Refresh the gradient gate
+			gradGate[z][c].setZero();
+
 			for (int i = 0; i < outputRows; i++) {
 				for (int j = 0; j < outputCols; j++) {
 					int ii = i * stride;
@@ -74,16 +78,14 @@ Tensor MaxPoolLayer::backward(Tensor dyTensor) {
 
 			for (int i = 0; i < dy[0][0].rows(); i++) {
 				for (int j = 0; j < dy[0][0].cols(); j++) {
+
 					int ii = i * stride;
 					int jj = j * stride;
 
-					for (int relativeI = 0; relativeI < kernelSize; relativeI++) {
-						for (int relativeJ = 0; relativeJ < kernelSize; relativeJ++) {
-							gradGate[z][c](ii + relativeI, jj + relativeJ) *= dy[z][c](i, j);
-						}
-					}
+					gradGate[z][c].block(ii, jj, kernelSize, kernelSize) *= dy[z][c](i, j);				
 				}
 			}
+
 		}
 	}
 	return Tensor::tensorWrap(gradGate);

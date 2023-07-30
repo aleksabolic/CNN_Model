@@ -21,4 +21,6 @@ public:
 	static Tensor tensorWrap(std::vector<std::vector<double>> input);
 
 	static Tensor tensorWrap(double input);
+
+	void print();
 };

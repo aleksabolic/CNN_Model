@@ -9,12 +9,14 @@
 
 //Constructor
 DenseLayer::DenseLayer(int numNodes, const std::string& activation) : activation(activation), numNodes(numNodes) {
+	srand(time(0));
 	BGradients = Eigen::RowVectorXd::Zero(numNodes);
 	b = Eigen::RowVectorXd::Random(numNodes);
 	trainable = true;
 }
 
 std::unordered_map<std::string, int> DenseLayer::initSizes(std::unordered_map<std::string, int> sizes) {
+	srand(time(0));
 	int inputSize = sizes["input size"];
 	batchSize = sizes["batch size"];
 
@@ -91,11 +93,20 @@ Tensor DenseLayer::forward(Tensor inputTensor) {
 	}
 	else if (activation == "softmax") {
 
+		// subtract the maximum value from each row
+		Eigen::VectorXd rowMax = wx.rowwise().maxCoeff();
+		wx.colwise() -= rowMax;
+
 		wx = wx.unaryExpr(exponent);
 		for (int z = 0; z < wx.rows(); z++) {
 			double sum = wx.row(z).sum();
+			// hack fix
+			if (sum == 0) {
+				sum = 1;
+			}
 			wx.row(z) /= sum;
 		}
+
 
 		// Calculate softmax node grads
 		#pragma omp parallel for

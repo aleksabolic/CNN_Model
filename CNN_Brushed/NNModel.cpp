@@ -20,8 +20,8 @@ NNModel::NNModel(const std::vector<std::shared_ptr<Layers>>& layersInput) : laye
 
 Tensor NNModel::propagateInput(const Tensor& x) {
 	Tensor A = x;
-	for (auto& layer : layers) {
-		A = layer->forward(A);
+	for (int i = 0; i < layers.size(); i++) {
+		A = layers[i]->forward(A);
 	}
 	return A;
 }
@@ -183,8 +183,14 @@ double NNModel::calcBatchCost(Eigen::MatrixXd yHat, std::vector<std::string> yTr
 
 	for (int z = 0; z < yTrue.size(); z++) {
 		int yTrueIndex = classNames[yTrue[z]];
-		double loss = -log(yHat(z, yTrueIndex));
-		cost += loss;
+
+		// Guard from inf
+		if (yHat(z, yTrueIndex) == 0) {
+			cost += 30;
+		}
+		else {
+			cost += -log(yHat(z, yTrueIndex));
+		}
 	}
 	return cost / yTrue.size();
 }
@@ -264,7 +270,12 @@ Eigen::MatrixXd NNModel::softmaxGradient(Eigen::MatrixXd yHat, std::vector<std::
 
 	for (int z = 0; z < dy.rows(); z++) {
 		int yTrueIndex = classNames[yTrue[z]];
-		dy(z, yTrueIndex) = -1.0 / yHat(z, yTrueIndex);
+		if (yHat(z, yTrueIndex) == 0) {
+			dy(z, yTrueIndex) = 10000;
+		}
+		else {
+			dy(z, yTrueIndex) = -1.0 / yHat(z, yTrueIndex);
+		}
 	}
 	return dy;
 }
@@ -295,7 +306,7 @@ void NNModel::fit(std::string path, int epochs, std::vector<std::string> classNa
 	}
 
 	for (int e = 0; e < epochs; e++) {
-		ImageLoader::readImages(path, batchSize, [this](std::vector<std::vector<Eigen::MatrixXd>> dataSet, std::vector<std::string> dataLabels) {
+		ImageLoader::readImages(path, batchSize, [this](std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std::vector<std::string>& dataLabels) {
 			this->train(dataSet, dataLabels);
 			});
 

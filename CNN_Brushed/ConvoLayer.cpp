@@ -11,12 +11,16 @@
 #include "ConvoLayer.h"
 
 ConvoLayer::ConvoLayer(int numFilters, int kernelSize, std::pair<int, int> strides, int padding, std::string activation) : numFilters(numFilters), kernelSize(kernelSize), strides(strides), activation(activation), padding(padding) {
-	b = Eigen::VectorXd(numFilters);
-	BGradients = Eigen::VectorXd(numFilters);
+	srand(time(0));
+
+	b = Eigen::VectorXd::Random(numFilters);
+	BGradients = Eigen::VectorXd::Zero(numFilters);
 	trainable = true;
 }
 
 std::unordered_map<std::string, int> ConvoLayer::initSizes(std::unordered_map<std::string, int> sizes) {
+	srand(time(0));
+
 	int inputChannels = sizes["input channels"];
 	int inputHeight = sizes["input height"];
 	int inputWidth = sizes["input width"];
@@ -89,12 +93,15 @@ Tensor ConvoLayer::forward(Tensor inputTensor) {
 		// calculate the output
 		Eigen::MatrixXd output = WMat * X;
 
+		// add the bias
+		output = output.colwise() + b;
+
 		for (int f = 0; f < numFilters; f++) {
 			for (int i = 0; i < layerOutput[0][0].rows(); i++) {
 				for (int j = 0; j < layerOutput[0][0].cols(); j++) {
-					double dotP = output(f, i * layerOutput[0][0].cols() + j) + b(f);
+					double dotP = output(f, i * layerOutput[0][0].cols() + j);
 					// apply activation function (relu in this case)
-					nodeGrads[z][f](i, j) = dotP > 0 ? 1 : 0;
+					if (activation == "relu") nodeGrads[z][f](i, j) = dotP > 0 ? 1 : 0;
 					if (activation == "relu") dotP = std::max(0.0, dotP);
 					layerOutput[z][f](i, j) = dotP;
 				}
@@ -151,7 +158,9 @@ Tensor ConvoLayer::backward(Tensor dyTensor) {
 				}
 			}
 		}
-
+		for (int z = 0; z < batchSize; z++) {
+			BGradients[f] += dy[z][f].sum();
+		}
 	}
 
 	// Calculate output gradient
@@ -177,10 +186,10 @@ void ConvoLayer::gradientDescent(double alpha) {
 		for (int c = 0; c < W[0].size(); c++) {
 			W[f][c] -= alpha * WGradients[f][c];
 			WGradients[f][c].setZero();
-		}
-		b[f] -= alpha * BGradients[f];
-		BGradients[f] = 0;
+		}	
 	}
+	b -= alpha * BGradients;
+	BGradients.setZero();
 }
 
 void ConvoLayer::saveWeights(const std::string& filename) {

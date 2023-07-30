@@ -259,7 +259,7 @@ void NNModel::fit(std::vector<std::vector<double>> input, std::vector<double> y,
 
 		}
 
-		std::cout << "Epoch: " << j << " Cost: " << calcCost(x, y) << std::endl;
+		printf("Epoch: %d Cost: %f\n", j, calcCost(x, y));
 	}
 	std::cout << "Finished Training " << std::endl;
 
@@ -281,7 +281,7 @@ Eigen::MatrixXd NNModel::softmaxGradient(Eigen::MatrixXd yHat, std::vector<std::
 }
 
 void NNModel::train(std::vector<std::vector<Eigen::MatrixXd>> dataSet, std::vector<std::string> dataLabels) {
-	std::cout<<"Started training..." << std::endl;
+	printf("Started training...\n");
 
 	Eigen::MatrixXd yHat = propagateInput(Tensor::tensorWrap(dataSet)).matrix;
 
@@ -295,7 +295,8 @@ void NNModel::train(std::vector<std::vector<Eigen::MatrixXd>> dataSet, std::vect
 		layer->gradientDescent(0.01);
 	}
 
-	std::cout << "Finished training...  Cost: " << calcBatchCost(yHat, dataLabels) <<std::endl;
+	printf("Finished training...  Cost: %f\n", calcBatchCost(yHat, dataLabels));
+
 }
 
 void NNModel::fit(std::string path, int epochs, std::vector<std::string> classNamesS) {
@@ -310,7 +311,7 @@ void NNModel::fit(std::string path, int epochs, std::vector<std::string> classNa
 			this->train(dataSet, dataLabels);
 			});
 
-		std::cout << "Epoch: " << e << std::endl;
+		printf("Epoch: %d\n", e);
 		saveWeights("./Model/firstModel");
 	}
 }

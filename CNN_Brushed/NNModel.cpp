@@ -271,7 +271,7 @@ Eigen::MatrixXd NNModel::softmaxGradient(Eigen::MatrixXd yHat, std::vector<std::
 	for (int z = 0; z < dy.rows(); z++) {
 		int yTrueIndex = classNames[yTrue[z]];
 		if (yHat(z, yTrueIndex) == 0) {
-			dy(z, yTrueIndex) = 10000;
+			dy(z, yTrueIndex) = 100;
 		}
 		else {
 			dy(z, yTrueIndex) = -1.0 / yHat(z, yTrueIndex);
@@ -296,7 +296,7 @@ void NNModel::train(std::vector<std::vector<Eigen::MatrixXd>> dataSet, std::vect
 	}
 
 	printf("Finished training...  Cost: %f\n", calcBatchCost(yHat, dataLabels));
-
+	saveWeights("./Model/firstModel");
 }
 
 void NNModel::fit(std::string path, int epochs, std::vector<std::string> classNamesS) {

@@ -6,20 +6,18 @@
 #include <utility>
 #include <omp.h>
 #include <fstream>
-
+#include <random>
 
 #include "ConvoLayer.h"
 
 ConvoLayer::ConvoLayer(int numFilters, int kernelSize, std::pair<int, int> strides, int padding, std::string activation) : numFilters(numFilters), kernelSize(kernelSize), strides(strides), activation(activation), padding(padding) {
-	srand(time(0));
 
-	b = Eigen::VectorXd::Random(numFilters);
+	b = Eigen::VectorXd(numFilters);
 	BGradients = Eigen::VectorXd::Zero(numFilters);
 	trainable = true;
 }
 
 std::unordered_map<std::string, int> ConvoLayer::initSizes(std::unordered_map<std::string, int> sizes) {
-	srand(time(0));
 
 	int inputChannels = sizes["input channels"];
 	int inputHeight = sizes["input height"];
@@ -28,12 +26,32 @@ std::unordered_map<std::string, int> ConvoLayer::initSizes(std::unordered_map<st
 
 	int outputHeight = (inputHeight - kernelSize + 2 * padding) / strides.first + 1;
 	int outputWidth = (inputWidth - kernelSize + 2 * padding) / strides.second + 1;
-	W = std::vector<std::vector<Eigen::MatrixXd>>(numFilters, std::vector<Eigen::MatrixXd>(inputChannels, Eigen::MatrixXd::Random(kernelSize, kernelSize)));
+	W = std::vector<std::vector<Eigen::MatrixXd>>(numFilters, std::vector<Eigen::MatrixXd>(inputChannels, Eigen::MatrixXd(kernelSize, kernelSize)));
 	WGradients = std::vector<std::vector<Eigen::MatrixXd>>(numFilters, std::vector<Eigen::MatrixXd>(inputChannels, Eigen::MatrixXd::Zero(kernelSize, kernelSize)));
 	layerOutput = std::vector<std::vector<Eigen::MatrixXd>>(batchSize, std::vector<Eigen::MatrixXd>(numFilters, Eigen::MatrixXd(outputHeight, outputWidth)));
 	nodeGrads = std::vector<std::vector<Eigen::MatrixXd>>(batchSize, std::vector<Eigen::MatrixXd>(numFilters, Eigen::MatrixXd(outputHeight, outputWidth)));
 	x = std::vector<std::vector<Eigen::MatrixXd>>(batchSize, std::vector<Eigen::MatrixXd>(inputChannels, Eigen::MatrixXd(inputHeight + 2 * padding, inputWidth + 2 * padding)));
 	outputGradients = std::vector<std::vector<Eigen::MatrixXd>>(batchSize, std::vector<Eigen::MatrixXd>(inputChannels, Eigen::MatrixXd(inputHeight, inputWidth)));
+
+	//initialize W and B with standard deviation
+	std::random_device rd{};
+	std::mt19937 gen{rd()};
+	std::normal_distribution<> d{0, 1}; // Mean 0, standard deviation 1
+
+	for (auto& inner_vec : W) {
+		for (auto& matrix : inner_vec) {
+			for (int i = 0; i < matrix.rows(); ++i) {
+				for (int j = 0; j < matrix.cols(); ++j) {
+					matrix(i, j) = d(gen);
+				}
+			}
+		}
+	}
+
+	for (int i = 0; i < b.size(); ++i) {
+		b(i) = d(gen);
+	}
+
 
 	// output sizes
 	std::unordered_map<std::string, int> outputSizes;
@@ -110,7 +128,7 @@ Tensor ConvoLayer::forward(Tensor inputTensor) {
 		}
 
 	}
-
+	std::cout<<"W value:" << W[4][2](1, 1) << std::endl;
 	return Tensor::tensorWrap(layerOutput);
 }
 
@@ -195,18 +213,25 @@ void ConvoLayer::gradientDescent(double alpha) {
 void ConvoLayer::saveWeights(const std::string& filename) {
 	std::ofstream outfile(filename, std::ios::binary);
 
-	for (const auto& w_layer : W) {
-		for (const auto& w_matrix : w_layer) {
-			Eigen::MatrixXd::Index rows = w_matrix.rows(), cols = w_matrix.cols();
-			outfile.write((char*)(&rows), sizeof(Eigen::MatrixXd::Index));
-			outfile.write((char*)(&cols), sizeof(Eigen::MatrixXd::Index));
-			outfile.write((char*)w_matrix.data(), rows * cols * sizeof(Eigen::MatrixXd::Scalar));
+	int outer_size = W.size();
+	outfile.write((char*)&outer_size, sizeof(int));
+	
+	for (const auto& inner_vector : W) {
+		int inner_size = inner_vector.size();
+		outfile.write((char*)&inner_size, sizeof(int));
+		
+		for (const auto& matrix : inner_vector) {
+			int rows = matrix.rows();
+			int cols = matrix.cols();
+			outfile.write((char*)&rows, sizeof(int));
+			outfile.write((char*)&cols, sizeof(int));
+			outfile.write((char*)matrix.data(), rows*cols*sizeof(double));
 		}
 	}
 
-	Eigen::VectorXd::Index b_size = b.size();
-	outfile.write((char*)(&b_size), sizeof(Eigen::VectorXd::Index));
-	outfile.write((char*)b.data(), b_size * sizeof(Eigen::VectorXd::Scalar));
+	int size = b.size();
+	outfile.write((char*)&size, sizeof(int));
+	outfile.write((char*)b.data(), size*sizeof(double));
 
 	outfile.close();
 }
@@ -214,21 +239,24 @@ void ConvoLayer::saveWeights(const std::string& filename) {
 void ConvoLayer::loadWeights(const std::string& filename) {
 	std::ifstream infile(filename, std::ios::binary);
 
-	Eigen::MatrixXd::Index rows = 0, cols = 0;
+	int outer_size;
+	infile.read((char*)&outer_size, sizeof(int));
 
-	for (auto& filter : W) {
-		for (auto& w_matrix : filter) {
-			infile.read((char*)(&rows), sizeof(Eigen::MatrixXd::Index));
-			infile.read((char*)(&cols), sizeof(Eigen::MatrixXd::Index));
-			w_matrix = Eigen::MatrixXd(rows, cols);
-			infile.read((char*)w_matrix.data(), rows * cols * sizeof(Eigen::MatrixXd::Scalar));
+	for (auto& inner_vector : W) {
+		int inner_size;
+		infile.read((char*)&inner_size, sizeof(int));
+
+		for (auto& matrix : inner_vector) {
+			int rows, cols;
+			infile.read((char*)&rows, sizeof(int));
+			infile.read((char*)&cols, sizeof(int));
+			infile.read((char*)matrix.data(), rows * cols * sizeof(double));
 		}
 	}
 
-	Eigen::VectorXd::Index b_size = 0;
-	infile.read((char*)(&b_size), sizeof(Eigen::VectorXd::Index));
-	b = Eigen::VectorXd(b_size);
-	infile.read((char*)b.data(), b_size * sizeof(Eigen::VectorXd::Scalar));
+	int size;
+	infile.read((char*)&size, sizeof(int));
+	infile.read((char*)b.data(), size * sizeof(double));
 
 	infile.close();
 }

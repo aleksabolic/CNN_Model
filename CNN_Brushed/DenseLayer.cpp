@@ -3,24 +3,23 @@
 #include <iostream>
 #include <unordered_map>
 #include <fstream>
+#include <random>
 
 #include "DenseLayer.h"
 #include "Sigmoid.h"
 
 //Constructor
 DenseLayer::DenseLayer(int numNodes, const std::string& activation) : activation(activation), numNodes(numNodes) {
-	srand(time(0));
 	BGradients = Eigen::RowVectorXd::Zero(numNodes);
-	b = Eigen::RowVectorXd::Random(numNodes);
+	b = Eigen::RowVectorXd(numNodes);
 	trainable = true;
 }
 
 std::unordered_map<std::string, int> DenseLayer::initSizes(std::unordered_map<std::string, int> sizes) {
-	srand(time(0));
 	int inputSize = sizes["input size"];
 	batchSize = sizes["batch size"];
 
-	w = Eigen::MatrixXd::Random(inputSize, numNodes); // Not a mistake this is w transpose
+	w = Eigen::MatrixXd(inputSize, numNodes); // Not a mistake this is w transpose
 	WGradients = Eigen::MatrixXd::Zero(inputSize, numNodes);
 	layerOutput = Eigen::MatrixXd(batchSize, numNodes);
 	x = Eigen::MatrixXd(batchSize, inputSize);
@@ -31,6 +30,21 @@ std::unordered_map<std::string, int> DenseLayer::initSizes(std::unordered_map<st
 	}
 	else {
 		nodeGrads = Eigen::MatrixXd(batchSize, numNodes);
+	}
+
+	// Initialize W and b values with standard deviation
+	std::random_device rd{};
+	std::mt19937 gen{rd()};
+	std::normal_distribution<> d{0, 1}; // Mean 0, standard deviation 1
+
+	for (int i = 0; i < w.rows(); ++i) {
+		for (int j = 0; j < w.cols(); ++j) {
+			w(i, j) = d(gen);
+		}
+	}
+
+	for (int i = 0; i < b.size(); ++i) {
+		b(i) = d(gen);
 	}
 
 	// output sizes
@@ -77,6 +91,8 @@ Tensor DenseLayer::forward(Tensor inputTensor) {
 
 	auto exponent = [](double x) {return exp(x); };
 
+	auto softmaxFix = [](double x) {return std::max(x, 1e-9); };
+
 	//Apply activation function
 
 	if (activation == "relu") {
@@ -96,6 +112,9 @@ Tensor DenseLayer::forward(Tensor inputTensor) {
 		// subtract the maximum value from each row
 		Eigen::VectorXd rowMax = wx.rowwise().maxCoeff();
 		wx.colwise() -= rowMax;
+
+		//hacky fix
+		wx.unaryExpr(softmaxFix);
 
 		wx = wx.unaryExpr(exponent);
 		for (int z = 0; z < wx.rows(); z++) {
@@ -163,14 +182,15 @@ void DenseLayer::gradientDescent(double alpha) {
 void DenseLayer::saveWeights(const std::string& filename) {
 	std::ofstream outfile(filename, std::ios::binary);
 
-	Eigen::MatrixXd::Index w_rows = w.rows(), w_cols = w.cols();
-	outfile.write((char*)(&w_rows), sizeof(Eigen::MatrixXd::Index));
-	outfile.write((char*)(&w_cols), sizeof(Eigen::MatrixXd::Index));
-	outfile.write((char*)w.data(), w_rows * w_cols * sizeof(Eigen::MatrixXd::Scalar));
+	int rows = w.rows();
+	int cols = w.cols();
+	outfile.write((char*)&rows, sizeof(int));
+	outfile.write((char*)&cols, sizeof(int));
+	outfile.write((char*)w.data(), rows * cols * sizeof(double));
 
-	Eigen::RowVectorXd::Index b_cols = b.cols();
-	outfile.write((char*)(&b_cols), sizeof(Eigen::RowVectorXd::Index));
-	outfile.write((char*)b.data(), b_cols * sizeof(Eigen::RowVectorXd::Scalar));
+	int size = b.size();
+	outfile.write((char*)&size, sizeof(int));
+	outfile.write((char*)b.data(), size * sizeof(double));
 
 	outfile.close();
 }
@@ -178,16 +198,14 @@ void DenseLayer::saveWeights(const std::string& filename) {
 void DenseLayer::loadWeights(const std::string& filename) {
 	std::ifstream infile(filename, std::ios::binary);
 
-	Eigen::MatrixXd::Index w_rows = 0, w_cols = 0;
-	infile.read((char*)(&w_rows), sizeof(Eigen::MatrixXd::Index));
-	infile.read((char*)(&w_cols), sizeof(Eigen::MatrixXd::Index));
-	w = Eigen::MatrixXd(w_rows, w_cols);
-	infile.read((char*)w.data(), w_rows * w_cols * sizeof(Eigen::MatrixXd::Scalar));
+	int rows, cols;
+	infile.read((char*)&rows, sizeof(int));
+	infile.read((char*)&cols, sizeof(int));
+	infile.read((char*)w.data(), rows * cols * sizeof(double));
 
-	Eigen::RowVectorXd::Index b_cols = 0;
-	infile.read((char*)(&b_cols), sizeof(Eigen::RowVectorXd::Index));
-	b = Eigen::RowVectorXd(b_cols);
-	infile.read((char*)b.data(), b_cols * sizeof(Eigen::RowVectorXd::Scalar));
+	int size;
+	infile.read((char*)&size, sizeof(int));
+	infile.read((char*)b.data(), size * sizeof(double));
 
 	infile.close();
 }

@@ -23,7 +23,7 @@ std::unordered_map<std::string, int> DenseLayer::initSizes(std::unordered_map<st
 	WGradients = Eigen::MatrixXd::Zero(inputSize, numNodes);
 	layerOutput = Eigen::MatrixXd(batchSize, numNodes);
 	x = Eigen::MatrixXd(batchSize, inputSize);
-	outputGradients = Eigen::MatrixXd(batchSize, inputSize);
+	outputGradients = Eigen::MatrixXd::Zero(batchSize, inputSize);
 
 	if (activation == "softmax") {
 		softmaxNodeGrads = std::vector<Eigen::MatrixXd>(batchSize, Eigen::MatrixXd(numNodes, numNodes));
@@ -32,10 +32,10 @@ std::unordered_map<std::string, int> DenseLayer::initSizes(std::unordered_map<st
 		nodeGrads = Eigen::MatrixXd(batchSize, numNodes);
 	}
 
-	// Initialize W and b values with standard deviation
 	std::random_device rd{};
 	std::mt19937 gen{rd()};
-	std::normal_distribution<> d{0, 1}; // Mean 0, standard deviation 1
+	double std_dev = sqrt(2.0 / inputSize);  
+	std::normal_distribution<> d{0, std_dev}; // Mean 0, standard deviation calculated by He initialization
 
 	for (int i = 0; i < w.rows(); ++i) {
 		for (int j = 0; j < w.cols(); ++j) {
@@ -46,6 +46,7 @@ std::unordered_map<std::string, int> DenseLayer::initSizes(std::unordered_map<st
 	for (int i = 0; i < b.size(); ++i) {
 		b(i) = d(gen);
 	}
+
 
 	// output sizes
 	std::unordered_map<std::string, int> outputSizes;
@@ -153,6 +154,9 @@ Tensor DenseLayer::backward(Tensor dyTensor) {
 	// Applying the activation gradient
 	if (activation != "softmax") {
 		dy = dy.cwiseProduct(nodeGrads);
+	}
+	else if(activation == "linear") {
+		// No nodeGrads so do nothing
 	}
 	else {
 

@@ -31,12 +31,12 @@ std::unordered_map<std::string, int> ConvoLayer::initSizes(std::unordered_map<st
 	layerOutput = std::vector<std::vector<Eigen::MatrixXd>>(batchSize, std::vector<Eigen::MatrixXd>(numFilters, Eigen::MatrixXd(outputHeight, outputWidth)));
 	nodeGrads = std::vector<std::vector<Eigen::MatrixXd>>(batchSize, std::vector<Eigen::MatrixXd>(numFilters, Eigen::MatrixXd(outputHeight, outputWidth)));
 	x = std::vector<std::vector<Eigen::MatrixXd>>(batchSize, std::vector<Eigen::MatrixXd>(inputChannels, Eigen::MatrixXd(inputHeight + 2 * padding, inputWidth + 2 * padding)));
-	outputGradients = std::vector<std::vector<Eigen::MatrixXd>>(batchSize, std::vector<Eigen::MatrixXd>(inputChannels, Eigen::MatrixXd(inputHeight, inputWidth)));
+	outputGradients = std::vector<std::vector<Eigen::MatrixXd>>(batchSize, std::vector<Eigen::MatrixXd>(inputChannels, Eigen::MatrixXd::Zero(inputHeight, inputWidth)));
 
-	//initialize W and B with standard deviation
 	std::random_device rd{};
 	std::mt19937 gen{rd()};
-	std::normal_distribution<> d{0, 1}; // Mean 0, standard deviation 1
+	double std_dev = sqrt(2.0 / (inputChannels * kernelSize * kernelSize)); // He init for convolutional layers
+	std::normal_distribution<> d{0, std_dev}; // Mean 0, standard deviation calculated by He initialization
 
 	for (auto& inner_vec : W) {
 		for (auto& matrix : inner_vec) {
@@ -128,7 +128,9 @@ Tensor ConvoLayer::forward(Tensor inputTensor) {
 		}
 
 	}
+	//testing
 	std::cout<<"W value:" << W[4][2](1, 1) << std::endl;
+	//testing
 	return Tensor::tensorWrap(layerOutput);
 }
 
@@ -142,7 +144,6 @@ Tensor ConvoLayer::backward(Tensor dyTensor) {
 			dy[z][f] = dy[z][f].array() * nodeGrads[z][f].array();
 		}
 	}
-
 
 	// Calculate WGradient
 	#pragma omp parallel for
@@ -181,6 +182,7 @@ Tensor ConvoLayer::backward(Tensor dyTensor) {
 		}
 	}
 
+
 	// Calculate output gradient
 	#pragma omp parallel for
 	for (int z = 0; z < batchSize; z++) {
@@ -202,11 +204,11 @@ Tensor ConvoLayer::backward(Tensor dyTensor) {
 void ConvoLayer::gradientDescent(double alpha) {
 	for (int f = 0; f < W.size(); f++) {
 		for (int c = 0; c < W[0].size(); c++) {
-			W[f][c] -= alpha * WGradients[f][c];
+			W[f][c] -= (alpha * WGradients[f][c])/batchSize;
 			WGradients[f][c].setZero();
 		}	
 	}
-	b -= alpha * BGradients;
+	b -= (alpha * BGradients)/ batchSize;
 	BGradients.setZero();
 }
 

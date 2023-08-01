@@ -70,6 +70,7 @@ int main() {
 
 	//model.loadWeights("./Model/firstModel");
 
+
 	model.fit(path, 2, classNames);
 
 	////Calculate the accuracy

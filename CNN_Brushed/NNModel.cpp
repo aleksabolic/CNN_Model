@@ -178,23 +178,121 @@ double NNModel::calcCost(std::vector < std::vector < Eigen::MatrixXd > > x, std:
 	return cost / yTrue.size();
 }
 
-double NNModel::calcBatchCost(Eigen::MatrixXd yHat, std::vector<std::string> yTrue) {
+double NNModel::calcBatchCost(const Eigen::MatrixXd& yHat, const Eigen::VectorXi& labels) {
 	double cost = 0.0;
 
-	for (int z = 0; z < yTrue.size(); z++) {
-		int yTrueIndex = classNames[yTrue[z]];
+	for (int z = 0; z < labels.size(); z++) {
+		int yTrueIndex = labels(z);
 
 		// Guard from inf
 		if (yHat(z, yTrueIndex) == 0) {
 			cost += 30;
 		}
 		else {
-			cost += -log(yHat(z, yTrueIndex));
+			cost += -std::log(yHat(z, yTrueIndex));
 		}
 	}
-	return cost / yTrue.size();
+	return cost / labels.size();
 }
 
+//softmax function
+Eigen::MatrixXd NNModel::softmax(const Eigen::MatrixXd& x) {
+	Eigen::MatrixXd shifted_logits = x.colwise() - x.rowwise().maxCoeff();
+
+	shifted_logits = shifted_logits.array().exp();
+
+	for (int i = 0; i < shifted_logits.rows(); ++i)
+	{
+		double rowSum = shifted_logits.row(i).sum();
+
+		// checking for zero division error
+		if (rowSum == 0)
+		{
+			rowSum += 1e-8;
+			continue;
+		}
+
+		shifted_logits.row(i) /= rowSum;
+	}
+
+	return shifted_logits;
+}
+
+// derivative of softmax cross entropy function
+Eigen::MatrixXd NNModel::derivative_softmax_cross_entropy(const Eigen::MatrixXd& softmax_prob, const Eigen::VectorXi& labels) {
+	Eigen::MatrixXd one_hot_labels = Eigen::MatrixXd::Zero(softmax_prob.rows(), softmax_prob.cols());
+	for (int i = 0; i < labels.size(); i++) {
+		one_hot_labels(i, labels[i]) = 1;
+	}
+	return softmax_prob - one_hot_labels;
+}
+
+Eigen::MatrixXd NNModel::softmaxGradient(const Eigen::MatrixXd& yHat, const Eigen::VectorXi& labels) {
+	Eigen::MatrixXd dy = Eigen::MatrixXd::Zero(yHat.rows(), yHat.cols());
+
+	for (int z = 0; z < dy.rows(); z++) {
+		int yTrueIndex = labels[z];
+		if (yHat(z, yTrueIndex) == 0) {
+			dy(z, yTrueIndex) = -100;
+		}
+		else {
+			dy(z, yTrueIndex) = -1.0 / yHat(z, yTrueIndex);
+		}
+	}
+	return dy;
+}
+
+void NNModel::train(std::vector<std::vector<Eigen::MatrixXd>> dataSet, std::vector<std::string> dataLabels) {
+	printf("Started training...\n");
+
+	Eigen::MatrixXd yHat = propagateInput(Tensor::tensorWrap(dataSet)).matrix;
+
+	// <-------check if it is from logits or not-------->
+	//yHat = softmax(yHat);
+
+	//std::cout << yHat << std::endl;
+
+
+	// Convert the string labels to int labels
+	Eigen::VectorXi labels = Eigen::VectorXi::Zero(dataLabels.size());
+	for (int i = 0; i < dataLabels.size(); i++) {
+		labels[i] = classNames[dataLabels[i]];
+	}
+
+	Eigen::MatrixXd dy = softmaxGradient(yHat, labels);
+
+	propagateGradient(Tensor::tensorWrap(dy));
+
+	//adamOptimizer(0.0001, 15);
+
+	// gradeint descent
+	for (auto& layer : layers) {
+		layer->gradientDescent(0.01);
+	}
+
+	printf("Finished training...  Cost: %f\n", calcBatchCost(yHat, labels));
+
+	//testing
+	saveWeights("./Model/firstModel");
+	//testing
+}
+
+void NNModel::fit(std::string path, int epochs, std::vector<std::string> classNamesS) {
+
+	// create the map for with the string to its index pairs
+	for (int i = 0; i < classNamesS.size(); i++) {
+		classNames[classNamesS[i]] = i;
+	}
+
+	for (int e = 0; e < epochs; e++) {
+		ImageLoader::readImages(path, batchSize, [this](std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std::vector<std::string>& dataLabels) {
+			this->train(dataSet, dataLabels);
+			});
+
+		printf("Epoch: %d\n", e);
+		saveWeights("./Model/firstModel");
+	}
+}
 
 void NNModel::fit(std::vector<std::vector<double>> input, std::vector<double> y, int epochs, double alpha, bool shuffle) {
 
@@ -263,57 +361,6 @@ void NNModel::fit(std::vector<std::vector<double>> input, std::vector<double> y,
 	}
 	std::cout << "Finished Training " << std::endl;
 
-}
-
-Eigen::MatrixXd NNModel::softmaxGradient(Eigen::MatrixXd yHat, std::vector<std::string> yTrue) {
-	Eigen::MatrixXd dy = Eigen::MatrixXd::Zero(yHat.rows(), yHat.cols());
-
-	for (int z = 0; z < dy.rows(); z++) {
-		int yTrueIndex = classNames[yTrue[z]];
-		if (yHat(z, yTrueIndex) == 0) {
-			dy(z, yTrueIndex) = 100;
-		}
-		else {
-			dy(z, yTrueIndex) = -1.0 / yHat(z, yTrueIndex);
-		}
-	}
-	return dy;
-}
-
-void NNModel::train(std::vector<std::vector<Eigen::MatrixXd>> dataSet, std::vector<std::string> dataLabels) {
-	printf("Started training...\n");
-
-	Eigen::MatrixXd yHat = propagateInput(Tensor::tensorWrap(dataSet)).matrix;
-
-	Eigen::MatrixXd dy = softmaxGradient(yHat, dataLabels); // Softmax gradient
-	propagateGradient(Tensor::tensorWrap(dy));
-
-	//adamOptimizer(0.0001, 15);
-
-	// gradeint descent
-	for (auto& layer : layers) {
-		layer->gradientDescent(0.01);
-	}
-
-	printf("Finished training...  Cost: %f\n", calcBatchCost(yHat, dataLabels));
-	saveWeights("./Model/firstModel");
-}
-
-void NNModel::fit(std::string path, int epochs, std::vector<std::string> classNamesS) {
-
-	// create the map for with the string to its index pairs
-	for (int i = 0; i < classNamesS.size(); i++) {
-		classNames[classNamesS[i]] = i;
-	}
-
-	for (int e = 0; e < epochs; e++) {
-		ImageLoader::readImages(path, batchSize, [this](std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std::vector<std::string>& dataLabels) {
-			this->train(dataSet, dataLabels);
-			});
-
-		printf("Epoch: %d\n", e);
-		saveWeights("./Model/firstModel");
-	}
 }
 
 Eigen::MatrixXd NNModel::predict(Eigen::MatrixXd x) {

@@ -181,17 +181,13 @@ double NNModel::calcCost(std::vector < std::vector < Eigen::MatrixXd > > x, std:
 double NNModel::calcBatchCost(const Eigen::MatrixXd& yHat, const Eigen::VectorXi& labels) {
 	double cost = 0.0;
 
+	double epsilon = 1e-7;
+
 	for (int z = 0; z < labels.size(); z++) {
 		int yTrueIndex = labels(z);
-
-		// Guard from inf
-		if (yHat(z, yTrueIndex) == 0) {
-			cost += 30;
-		}
-		else {
-			cost += -std::log(yHat(z, yTrueIndex));
-		}
+		cost += -std::log(yHat(z, yTrueIndex) + epsilon);
 	}
+
 	return cost / labels.size();
 }
 
@@ -230,14 +226,11 @@ Eigen::MatrixXd NNModel::derivative_softmax_cross_entropy(const Eigen::MatrixXd&
 Eigen::MatrixXd NNModel::softmaxGradient(const Eigen::MatrixXd& yHat, const Eigen::VectorXi& labels) {
 	Eigen::MatrixXd dy = Eigen::MatrixXd::Zero(yHat.rows(), yHat.cols());
 
+	double epsilon = 1e-7;
+
 	for (int z = 0; z < dy.rows(); z++) {
 		int yTrueIndex = labels[z];
-		if (yHat(z, yTrueIndex) == 0) {
-			dy(z, yTrueIndex) = -100;
-		}
-		else {
-			dy(z, yTrueIndex) = -1.0 / yHat(z, yTrueIndex);
-		}
+		dy(z, yTrueIndex) = -1.0 / (yHat(z, yTrueIndex) + epsilon);
 	}
 	return dy;
 }
@@ -260,6 +253,7 @@ void NNModel::train(std::vector<std::vector<Eigen::MatrixXd>> dataSet, std::vect
 	}
 
 	Eigen::MatrixXd dy = softmaxGradient(yHat, labels);
+	std::cout << dy << std::endl;
 
 	propagateGradient(Tensor::tensorWrap(dy));
 
@@ -273,7 +267,7 @@ void NNModel::train(std::vector<std::vector<Eigen::MatrixXd>> dataSet, std::vect
 	printf("Finished training...  Cost: %f\n", calcBatchCost(yHat, labels));
 
 	//testing
-	saveWeights("./Model/firstModel");
+	//saveWeights("./Model/firstModel");
 	//testing
 }
 

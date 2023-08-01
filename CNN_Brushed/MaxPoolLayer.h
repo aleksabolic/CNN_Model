@@ -13,11 +13,11 @@ public:
 
 	MaxPoolLayer(int kernelSize, int stride);
 
-	std::unordered_map<std::string, int> initSizes(std::unordered_map<std::string, int> sizes) override;
+	std::unordered_map<std::string, int> initSizes(std::unordered_map<std::string, int>& sizes) override;
 
-	Tensor forward(Tensor inputTensor) override;
+	Tensor forward(const Tensor& inputTensor) override;
 
-	Tensor backward(Tensor dyTensor) override;
+	Tensor backward(const Tensor& dyTensor) override;
 
 	void gradientDescent(double alpha) override;
 

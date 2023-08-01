@@ -15,7 +15,7 @@ DenseLayer::DenseLayer(int numNodes, const std::string& activation) : activation
 	trainable = true;
 }
 
-std::unordered_map<std::string, int> DenseLayer::initSizes(std::unordered_map<std::string, int> sizes) {
+std::unordered_map<std::string, int> DenseLayer::initSizes(std::unordered_map<std::string, int>& sizes) {
 	int inputSize = sizes["input size"];
 	batchSize = sizes["batch size"];
 
@@ -75,7 +75,7 @@ void DenseLayer::uploadWeightsBias(std::vector<std::vector<double>> wUpload, std
 
 }
 
-Tensor DenseLayer::forward(Tensor inputTensor) {
+Tensor DenseLayer::forward(const Tensor& inputTensor) {
 
 	Eigen::MatrixXd xInput = inputTensor.matrix;
 	x = xInput; // batch matrix
@@ -147,7 +147,7 @@ Tensor DenseLayer::forward(Tensor inputTensor) {
 	return Tensor::tensorWrap(wx);
 }
 
-Tensor DenseLayer::backward(Tensor dyTensor) {
+Tensor DenseLayer::backward(const Tensor& dyTensor) {
 
 	Eigen::MatrixXd dy = dyTensor.matrix;
 

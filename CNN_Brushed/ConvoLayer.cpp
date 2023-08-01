@@ -17,7 +17,7 @@ ConvoLayer::ConvoLayer(int numFilters, int kernelSize, std::pair<int, int> strid
 	trainable = true;
 }
 
-std::unordered_map<std::string, int> ConvoLayer::initSizes(std::unordered_map<std::string, int> sizes) {
+std::unordered_map<std::string, int> ConvoLayer::initSizes(std::unordered_map<std::string, int>& sizes) {
 
 	int inputChannels = sizes["input channels"];
 	int inputHeight = sizes["input height"];
@@ -62,7 +62,7 @@ std::unordered_map<std::string, int> ConvoLayer::initSizes(std::unordered_map<st
 	return outputSizes;
 }
 
-Tensor ConvoLayer::forward(Tensor inputTensor) {
+Tensor ConvoLayer::forward(const Tensor& inputTensor) {
 
 	std::vector<std::vector<Eigen::MatrixXd>> input = inputTensor.matrix4d;
 
@@ -134,7 +134,7 @@ Tensor ConvoLayer::forward(Tensor inputTensor) {
 	return Tensor::tensorWrap(layerOutput);
 }
 
-Tensor ConvoLayer::backward(Tensor dyTensor) {
+Tensor ConvoLayer::backward(const Tensor& dyTensor) {
 
 	std::vector<std::vector<Eigen::MatrixXd>> dy = dyTensor.matrix4d;
 

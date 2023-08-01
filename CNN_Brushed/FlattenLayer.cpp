@@ -8,7 +8,7 @@ FlattenLayer::FlattenLayer() {
 	trainable = false;
 }
 
-std::unordered_map<std::string, int> FlattenLayer::initSizes(std::unordered_map<std::string, int> sizes) {
+std::unordered_map<std::string, int> FlattenLayer::initSizes(std::unordered_map<std::string, int>& sizes) {
 	inputChannels = sizes["input channels"];
 	inputHeight = sizes["input height"];
 	inputWidth = sizes["input width"];
@@ -21,7 +21,7 @@ std::unordered_map<std::string, int> FlattenLayer::initSizes(std::unordered_map<
 	return outputSizes;
 }
 
-Tensor FlattenLayer::forward(Tensor inputTensor) {
+Tensor FlattenLayer::forward(const Tensor& inputTensor) {
 
 	std::vector<std::vector<Eigen::MatrixXd>> input = inputTensor.matrix4d;
 
@@ -40,7 +40,7 @@ Tensor FlattenLayer::forward(Tensor inputTensor) {
 	return Tensor::tensorWrap(output);
 }
 
-Tensor FlattenLayer::backward(Tensor dyTensor) {
+Tensor FlattenLayer::backward(const Tensor& dyTensor) {
 
 	Eigen::MatrixXd dy = dyTensor.matrix;
 

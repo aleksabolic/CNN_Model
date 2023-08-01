@@ -23,13 +23,13 @@ public:
 	//Constructor
 	DenseLayer(int numNodes, const std::string& activation);
 
-	std::unordered_map<std::string, int> initSizes(std::unordered_map<std::string, int> sizes) override;
+	std::unordered_map<std::string, int> initSizes(std::unordered_map<std::string, int>& sizes) override;
 
 	void uploadWeightsBias(std::vector<std::vector<double>> wUpload, std::vector<double> bUpload);
 
-	Tensor forward(Tensor inputTensor) override;
+	Tensor forward(const Tensor& inputTensor) override;
 
-	Tensor backward(Tensor dyTensor) override;
+	Tensor backward(const Tensor& dyTensor) override;
 
 	void gradientDescent(double alpha) override;
 

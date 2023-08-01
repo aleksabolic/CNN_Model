@@ -11,11 +11,11 @@ public:
 
 	FlattenLayer();
 
-	std::unordered_map<std::string, int> initSizes(std::unordered_map<std::string, int> sizes) override;
+	std::unordered_map<std::string, int> initSizes(std::unordered_map<std::string, int>& sizes) override;
 
-	Tensor forward(Tensor input) override;
+	Tensor forward(const Tensor& input) override;
 
-	Tensor backward(Tensor dy) override;
+	Tensor backward(const Tensor& dy) override;
 
 	void gradientDescent(double alpha) override;
 

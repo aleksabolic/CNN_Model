@@ -10,7 +10,7 @@ MaxPoolLayer::MaxPoolLayer(int kernelSize, int stride) : kernelSize(kernelSize),
 	trainable = false;
 }
 
-std::unordered_map<std::string, int> MaxPoolLayer::initSizes(std::unordered_map<std::string, int> sizes) {
+std::unordered_map<std::string, int> MaxPoolLayer::initSizes(std::unordered_map<std::string, int>& sizes) {
 	int inputChannels = sizes["input channels"];
 	int inputHeight = sizes["input height"];
 	int inputWidth = sizes["input width"];
@@ -31,7 +31,7 @@ std::unordered_map<std::string, int> MaxPoolLayer::initSizes(std::unordered_map<
 	return outputSizes;
 }
 
-Tensor MaxPoolLayer::forward(Tensor inputTensor) {
+Tensor MaxPoolLayer::forward(const Tensor& inputTensor) {
 
 	std::vector<std::vector<Eigen::MatrixXd>> input = inputTensor.matrix4d;
 
@@ -69,7 +69,7 @@ Tensor MaxPoolLayer::forward(Tensor inputTensor) {
 	return Tensor::tensorWrap(layerOutput);
 }
 
-Tensor MaxPoolLayer::backward(Tensor dyTensor) {
+Tensor MaxPoolLayer::backward(const Tensor& dyTensor) {
 	std::vector<std::vector<Eigen::MatrixXd>> dy = dyTensor.matrix4d;
 	#pragma omp parallel for
 	for (int z = 0; z < dy.size(); z++) {

@@ -191,7 +191,6 @@ double NNModel::calcBatchCost(const Eigen::MatrixXd& yHat, const Eigen::VectorXi
 	return cost / labels.size();
 }
 
-//softmax function
 Eigen::MatrixXd NNModel::softmax(const Eigen::MatrixXd& x) {
 	Eigen::MatrixXd shifted_logits = x.colwise() - x.rowwise().maxCoeff();
 
@@ -214,15 +213,6 @@ Eigen::MatrixXd NNModel::softmax(const Eigen::MatrixXd& x) {
 	return shifted_logits;
 }
 
-// derivative of softmax cross entropy function
-Eigen::MatrixXd NNModel::derivative_softmax_cross_entropy(const Eigen::MatrixXd& softmax_prob, const Eigen::VectorXi& labels) {
-	Eigen::MatrixXd one_hot_labels = Eigen::MatrixXd::Zero(softmax_prob.rows(), softmax_prob.cols());
-	for (int i = 0; i < labels.size(); i++) {
-		one_hot_labels(i, labels[i]) = 1;
-	}
-	return softmax_prob - one_hot_labels;
-}
-
 Eigen::MatrixXd NNModel::softmaxGradient(const Eigen::MatrixXd& yHat, const Eigen::VectorXi& labels) {
 	Eigen::MatrixXd dy = Eigen::MatrixXd::Zero(yHat.rows(), yHat.cols());
 
@@ -235,16 +225,10 @@ Eigen::MatrixXd NNModel::softmaxGradient(const Eigen::MatrixXd& yHat, const Eige
 	return dy;
 }
 
-void NNModel::train(std::vector<std::vector<Eigen::MatrixXd>> dataSet, std::vector<std::string> dataLabels) {
+void NNModel::train(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std::vector<std::string>& dataLabels) {
 	printf("Started training...\n");
 
 	Eigen::MatrixXd yHat = propagateInput(Tensor::tensorWrap(dataSet)).matrix;
-
-	// <-------check if it is from logits or not-------->
-	//yHat = softmax(yHat);
-
-	//std::cout << yHat << std::endl;
-
 
 	// Convert the string labels to int labels
 	Eigen::VectorXi labels = Eigen::VectorXi::Zero(dataLabels.size());
@@ -253,7 +237,6 @@ void NNModel::train(std::vector<std::vector<Eigen::MatrixXd>> dataSet, std::vect
 	}
 
 	Eigen::MatrixXd dy = softmaxGradient(yHat, labels);
-	//std::cout << dy << std::endl;
 
 	propagateGradient(Tensor::tensorWrap(dy));
 
@@ -266,9 +249,7 @@ void NNModel::train(std::vector<std::vector<Eigen::MatrixXd>> dataSet, std::vect
 
 	printf("Finished training...  Cost: %f\n", calcBatchCost(yHat, labels));
 
-	//testing
-	//saveWeights("./Model/firstModel");
-	//testing
+	saveWeights("./Model/firstModel");
 }
 
 void NNModel::fit(std::string path, int epochs, std::vector<std::string> classNamesS) {

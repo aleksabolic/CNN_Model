@@ -33,8 +33,6 @@ private:
 
 	Eigen::MatrixXd softmax(const Eigen::MatrixXd& x);
 
-	Eigen::MatrixXd derivative_softmax_cross_entropy(const Eigen::MatrixXd& softmax_prob, const Eigen::VectorXi& labels);
-
 	//void adamOptimizer(double alpha, double T, double e = 10e-7, double beta1 = 0.9, double beta2 = 0.999);
 
 public:
@@ -61,7 +59,7 @@ public:
 
 	Eigen::MatrixXd softmaxGradient(const Eigen::MatrixXd& yHat, const Eigen::VectorXi& labels);
 
-	void train(std::vector<std::vector<Eigen::MatrixXd>> dataSet, std::vector<std::string> dataLabels);
+	void train(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std::vector<std::string>& dataLabels);
 
 	void fit(std::string path, int epochs, std::vector<std::string> classNamesS);
 

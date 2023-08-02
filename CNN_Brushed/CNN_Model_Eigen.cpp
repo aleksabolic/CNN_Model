@@ -51,31 +51,29 @@ int main() {
 	auto start = std::chrono::high_resolution_clock::now();
 
 	std::vector<std::shared_ptr<Layers>> input;
-	input.push_back(std::make_shared<ConvoLayer>(64,3,pair(1,1),0, "relu"));
+	input.push_back(std::make_shared<ConvoLayer>(64,3,pair(1,1),0, "relu", true));
 	input.push_back(std::make_shared<MaxPoolLayer>(2,2));
-	input.push_back(std::make_shared<ConvoLayer>(64, 3, pair(1, 1), 0, "relu"));
+	input.push_back(std::make_shared<ConvoLayer>(64, 3, pair(1, 1), 0, "relu", true));
 	input.push_back(std::make_shared<MaxPoolLayer>(2,2));
-	input.push_back(std::make_shared<ConvoLayer>(32, 3, pair(1, 1), 0, "relu"));
+	input.push_back(std::make_shared<ConvoLayer>(32, 3, pair(1, 1), 0, "relu", true));
 	input.push_back(std::make_shared<MaxPoolLayer>(2,2));
 	input.push_back(std::make_shared<FlattenLayer>());
-	input.push_back(std::make_shared<DenseLayer>(256,"relu"));
-	input.push_back(std::make_shared<DenseLayer>(82, "softmax"));
+	input.push_back(std::make_shared<DenseLayer>(256,"relu", true));
+	input.push_back(std::make_shared<DenseLayer>(82, "softmax", true));
 
 	NNModel model(input);
 
 	model.compile(32, 3, 45, 45);
-	model.regularization = true;
 
 	std::string path = "C:\\Users\\aleks\\OneDrive\\Desktop\\train_images";
 	std::vector<std::string> classNames = ImageLoader::subfoldersNames(path);
 
 	//model.loadWeights("./Model/firstModel");
 
-
 	model.fit(path, 2, classNames);
 
-	////Calculate the accuracy
-	//std::cout << "Accuracy: " << model.calcAccuracy(xTest, yTest, 0.5) << std::endl;
+	//Calculate the accuracy
+	std::cout << "Accuracy: " << model.accuracy(path) << std::endl;
 
 	// Stop the clock
 	auto end = std::chrono::high_resolution_clock::now();

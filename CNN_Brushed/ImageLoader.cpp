@@ -60,6 +60,7 @@ void ImageLoader::readImages(string directory, int batchSize, std::function<void
 				cerr << "Failed to open " << path << endl;
 			}
 
+			// <--------check if its the last picture-------->
 			if (size == batchSize) {
 				callback(dataSet, dataLabels);
 

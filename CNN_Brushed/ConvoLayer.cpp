@@ -10,7 +10,7 @@
 
 #include "ConvoLayer.h"
 
-ConvoLayer::ConvoLayer(int numFilters, int kernelSize, std::pair<int, int> strides, int padding, std::string activation) : numFilters(numFilters), kernelSize(kernelSize), strides(strides), activation(activation), padding(padding) {
+ConvoLayer::ConvoLayer(int numFilters, int kernelSize, std::pair<int, int> strides, int padding, std::string activation, bool regularization) : numFilters(numFilters), kernelSize(kernelSize), strides(strides), activation(activation), padding(padding), regularization(regularization) {
 
 	b = Eigen::VectorXd(numFilters);
 	BGradients = Eigen::VectorXd::Zero(numFilters);
@@ -119,23 +119,17 @@ Tensor ConvoLayer::forward(const Tensor& inputTensor) {
 				for (int j = 0; j < layerOutput[0][0].cols(); j++) {
 					double dotP = output(f, i * layerOutput[0][0].cols() + j);
 					// apply activation function (relu in this case)
-					if (activation == "relu") nodeGrads[z][f](i, j) = dotP > 0 ? 1 : 0;
-					if (activation == "relu") dotP = std::max(0.0, dotP);
+					if (activation == "relu") {
+						nodeGrads[z][f](i, j) = dotP > 0 ? 1 : 0;
+						dotP = std::max(0.0, dotP);
+					}
 					layerOutput[z][f](i, j) = dotP;
 				}
 
 			}
 		}
-
 	}
-	//testing
-	/*std::cout << "W value:";
-	std::cout << "<------------------------------------------->"<<std::endl;
-	Tensor::tensorWrap(W).print();
-	std::cout << "<------------------------------------------->"<<std::endl;*/
 
-	std::cout<<"W value:" << W[4][2](1, 1) << std::endl;
-	//testing
 	return Tensor::tensorWrap(layerOutput);
 }
 
@@ -214,18 +208,18 @@ Tensor ConvoLayer::backward(const Tensor& dyTensor) {
 
 void ConvoLayer::gradientDescent(double alpha) {
 
-	//testing
 	//check if the layer should be regularized
-	std::string regularization = "l2";
-	double lambda = 0.01;
-	if (regularization == "l2") {
-		for (int f = 0; f < W.size(); f++) {
-			for (int c = 0; c < W[0].size(); c++) {
-				WGradients[f][c] += lambda * W[f][c] / batchSize;
-			}	
+	if (regularization) {
+		std::string regularization = "l2";
+		double lambda = 0.01;
+		if (regularization == "l2") {
+			for (int f = 0; f < W.size(); f++) {
+				for (int c = 0; c < W[0].size(); c++) {
+					WGradients[f][c] += lambda * W[f][c] / batchSize;
+				}
+			}
 		}
 	}
-	//testing
 
 	for (int f = 0; f < W.size(); f++) {
 		for (int c = 0; c < W[0].size(); c++) {

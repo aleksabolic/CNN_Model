@@ -9,7 +9,7 @@
 #include "Sigmoid.h"
 
 //Constructor
-DenseLayer::DenseLayer(int numNodes, const std::string& activation) : activation(activation), numNodes(numNodes) {
+DenseLayer::DenseLayer(int numNodes, const std::string& activation, bool regularization) : activation(activation), numNodes(numNodes), regularization(regularization) {
 	BGradients = Eigen::RowVectorXd::Zero(numNodes);
 	b = Eigen::RowVectorXd(numNodes);
 	trainable = true;
@@ -176,15 +176,15 @@ Tensor DenseLayer::backward(const Tensor& dyTensor) {
 
 void DenseLayer::gradientDescent(double alpha) {
 
-	//testing 
 	//check if the layer should be regularized
-	std::string regularization = "l2";
-	double lambda = 0.01;
-	if (regularization == "l2") {
-		WGradients += (lambda * w)/batchSize;
+	if (regularization) {
+		std::string regularization = "l2";
+		double lambda = 0.01;
+		if (regularization == "l2") {
+			WGradients += (lambda * w) / batchSize;
+		}
 	}
-	//testing
-
+	
 	w = w - ((alpha * WGradients) / batchSize);
 	b = b - ((alpha * BGradients) / batchSize);
 

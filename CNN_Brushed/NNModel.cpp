@@ -393,18 +393,36 @@ double NNModel::calcAccuracy(std::vector<std::vector<double>> input, std::vector
 	return 100 * (1 - absSum);
 }
 
-double NNModel::calcAccuracy(std::vector < std::vector < Eigen::MatrixXd > > input, std::vector<std::string> yTrue) {
+void NNModel::calcAccuracy(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std::vector<std::string>& dataLabels) {
+	Eigen::MatrixXd yHat = predict(dataSet);
 
-	Eigen::MatrixXd yHat = predict(input);
+	// Convert the string labels to int labels
+	Eigen::VectorXi labels = Eigen::VectorXi::Zero(dataLabels.size());
+	for (int i = 0; i < dataLabels.size(); i++) {
+		labels[i] = classNames[dataLabels[i]];
+	}
 
-	double correct = 0;
 	for (int z = 0; z < yHat.rows(); z++) {
 		Eigen::MatrixXd::Index maxIndex;
 		yHat.row(z).maxCoeff(&maxIndex);
-		if (classNames[yTrue[z]] == maxIndex) {
-			correct++;
+		if (labels[z] == maxIndex) {
+			modelAccuracy++;
 		}
 	}
-	correct /= yHat.rows();
-	return 100 * (1- correct);
+
+	datasetSize += yHat.rows();
+}
+
+double NNModel::accuracy(std::string path) {
+
+	modelAccuracy = 0;
+	datasetSize = 0;
+
+	ImageLoader::readImages(path, batchSize, [this](std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std::vector<std::string>& dataLabels) {
+		this->calcAccuracy(dataSet, dataLabels);
+		});
+
+	
+	modelAccuracy /= datasetSize;
+	return 100 * (1- modelAccuracy);
 }

@@ -19,6 +19,8 @@ private:
 
 	int batchSize = -1;
 
+	double datasetSize = 0;
+
 	std::unordered_map<std::string, int> classNames;
 
 	Tensor propagateInput(const Tensor& x);
@@ -39,7 +41,7 @@ public:
 
 	std::vector<std::shared_ptr<Layers>> layers;
 
-	bool regularization = false;
+	double modelAccuracy = 0;
 
 	NNModel(const std::vector<std::shared_ptr<Layers>>& layersInput);
 
@@ -70,7 +72,9 @@ public:
 
 	double calcAccuracy(std::vector<std::vector<double>> input, std::vector<double> y, double delimiter);
 
-	double calcAccuracy(std::vector < std::vector < Eigen::MatrixXd > > input, std::vector<std::string> yTrue);
+	void calcAccuracy(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std::vector<std::string>& dataLabels);
+
+	double accuracy(std::string path);
 
 	void loadWeights(const std::string& filename);
 

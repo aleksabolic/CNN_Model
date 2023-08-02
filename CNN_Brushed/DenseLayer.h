@@ -15,13 +15,14 @@ private:
 	int inputSize;
 	int batchSize;
 	std::string activation;
+	bool regularization;
 public:
 	Eigen::MatrixXd x, w, WGradients, layerOutput, outputGradients, nodeGrads; //w is transposed by default
 	Eigen::RowVectorXd b, BGradients;
 	std::vector<Eigen::MatrixXd> softmaxNodeGrads;
 
 	//Constructor
-	DenseLayer(int numNodes, const std::string& activation);
+	DenseLayer(int numNodes, const std::string& activation, bool regularizaton = false);
 
 	std::unordered_map<std::string, int> initSizes(std::unordered_map<std::string, int>& sizes) override;
 

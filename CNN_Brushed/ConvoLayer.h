@@ -13,6 +13,7 @@ private:
 	int numFilters, kernelSize, padding, batchSize;
 	std::pair<int, int> strides;
 	std::string activation;
+	bool regularization;
 
 	std::vector<std::vector<Eigen::MatrixXd>> W, WGradients; // (numFilters, channels, h, w)
 	std::vector<std::vector<Eigen::MatrixXd>> layerOutput, outputGradients, nodeGrads; //(batch_size, numFilters, outputHeight, outputWidth)
@@ -20,7 +21,7 @@ private:
 	std::vector<std::vector<Eigen::MatrixXd>> x; // (batch_size, channels, h, w)
 public:
 
-	ConvoLayer(int numFilters, int kernelSize, std::pair<int, int> strides, int padding, std::string activation);
+	ConvoLayer(int numFilters, int kernelSize, std::pair<int, int> strides, int padding, std::string activation, bool regularization = false);
 
 	std::unordered_map<std::string, int> initSizes(std::unordered_map<std::string, int>& sizes) override;
 

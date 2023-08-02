@@ -39,6 +39,8 @@ public:
 
 	std::vector<std::shared_ptr<Layers>> layers;
 
+	bool regularization = false;
+
 	NNModel(const std::vector<std::shared_ptr<Layers>>& layersInput);
 
 	double calcCost(Eigen::MatrixXd x, std::vector<double> y);

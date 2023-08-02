@@ -64,6 +64,7 @@ int main() {
 	NNModel model(input);
 
 	model.compile(32, 3, 45, 45);
+	model.regularization = true;
 
 	std::string path = "C:\\Users\\aleks\\OneDrive\\Desktop\\train_images";
 	std::vector<std::string> classNames = ImageLoader::subfoldersNames(path);

@@ -129,6 +129,11 @@ Tensor ConvoLayer::forward(const Tensor& inputTensor) {
 
 	}
 	//testing
+	/*std::cout << "W value:";
+	std::cout << "<------------------------------------------->"<<std::endl;
+	Tensor::tensorWrap(W).print();
+	std::cout << "<------------------------------------------->"<<std::endl;*/
+
 	std::cout<<"W value:" << W[4][2](1, 1) << std::endl;
 	//testing
 	return Tensor::tensorWrap(layerOutput);
@@ -182,6 +187,12 @@ Tensor ConvoLayer::backward(const Tensor& dyTensor) {
 		}
 	}
 
+	// reset the output gradients
+	for (int z = 0; z < batchSize; z++) {
+		for (int c = 0; c < x[0].size(); c++) {
+			outputGradients[z][c].setZero();
+		}
+	}
 
 	// Calculate output gradient
 	#pragma omp parallel for
@@ -202,6 +213,20 @@ Tensor ConvoLayer::backward(const Tensor& dyTensor) {
 }
 
 void ConvoLayer::gradientDescent(double alpha) {
+
+	//testing
+	//check if the layer should be regularized
+	std::string regularization = "l2";
+	double lambda = 0.01;
+	if (regularization == "l2") {
+		for (int f = 0; f < W.size(); f++) {
+			for (int c = 0; c < W[0].size(); c++) {
+				WGradients[f][c] += lambda * W[f][c] / batchSize;
+			}	
+		}
+	}
+	//testing
+
 	for (int f = 0; f < W.size(); f++) {
 		for (int c = 0; c < W[0].size(); c++) {
 			W[f][c] -= (alpha * WGradients[f][c])/batchSize;

@@ -175,6 +175,16 @@ Tensor DenseLayer::backward(const Tensor& dyTensor) {
 }
 
 void DenseLayer::gradientDescent(double alpha) {
+
+	//testing 
+	//check if the layer should be regularized
+	std::string regularization = "l2";
+	double lambda = 0.01;
+	if (regularization == "l2") {
+		WGradients += (lambda * w)/batchSize;
+	}
+	//testing
+
 	w = w - ((alpha * WGradients) / batchSize);
 	b = b - ((alpha * BGradients) / batchSize);
 

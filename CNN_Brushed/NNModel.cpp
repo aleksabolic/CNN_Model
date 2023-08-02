@@ -253,7 +253,7 @@ void NNModel::train(std::vector<std::vector<Eigen::MatrixXd>> dataSet, std::vect
 	}
 
 	Eigen::MatrixXd dy = softmaxGradient(yHat, labels);
-	std::cout << dy << std::endl;
+	//std::cout << dy << std::endl;
 
 	propagateGradient(Tensor::tensorWrap(dy));
 

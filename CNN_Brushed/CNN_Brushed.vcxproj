@@ -144,24 +144,24 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="CNN_Model_Eigen.cpp" />
-    <ClCompile Include="ConvoLayer.cpp" />
-    <ClCompile Include="DenseLayer.cpp" />
-    <ClCompile Include="FlattenLayer.cpp" />
     <ClCompile Include="ImageLoader.cpp" />
+    <ClCompile Include="Layers\ConvoLayer.cpp" />
+    <ClCompile Include="Layers\DenseLayer.cpp" />
+    <ClCompile Include="Layers\FlattenLayer.cpp" />
+    <ClCompile Include="Layers\MaxPoolLayer.cpp" />
     <ClCompile Include="Loss.cpp" />
-    <ClCompile Include="MaxPoolLayer.cpp" />
     <ClCompile Include="NNModel.cpp" />
     <ClCompile Include="Sigmoid.cpp" />
     <ClCompile Include="Tensor.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ConvoLayer.h" />
-    <ClInclude Include="DenseLayer.h" />
-    <ClInclude Include="FlattenLayer.h" />
     <ClInclude Include="ImageLoader.h" />
-    <ClInclude Include="Layers.h" />
+    <ClInclude Include="Layers\ConvoLayer.h" />
+    <ClInclude Include="Layers\DenseLayer.h" />
+    <ClInclude Include="Layers\FlattenLayer.h" />
+    <ClInclude Include="Layers\Layers.h" />
+    <ClInclude Include="Layers\MaxPoolLayer.h" />
     <ClInclude Include="Loss.h" />
-    <ClInclude Include="MaxPoolLayer.h" />
     <ClInclude Include="NNModel.h" />
     <ClInclude Include="Sigmoid.h" />
     <ClInclude Include="Tensor.h" />

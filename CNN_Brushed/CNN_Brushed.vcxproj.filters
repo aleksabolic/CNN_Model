@@ -14,7 +14,7 @@
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
     <Filter Include="Layers">
-      <UniqueIdentifier>{602d4ff8-7f71-4908-a89a-90da5738e076}</UniqueIdentifier>
+      <UniqueIdentifier>{91fe8cce-c41f-415a-996a-da081231c3a7}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -22,18 +22,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Tensor.cpp">
-      <Filter>Resource Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DenseLayer.cpp">
-      <Filter>Resource Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ConvoLayer.cpp">
-      <Filter>Resource Files</Filter>
-    </ClCompile>
-    <ClCompile Include="FlattenLayer.cpp">
-      <Filter>Resource Files</Filter>
-    </ClCompile>
-    <ClCompile Include="MaxPoolLayer.cpp">
       <Filter>Resource Files</Filter>
     </ClCompile>
     <ClCompile Include="Sigmoid.cpp">
@@ -48,22 +36,22 @@
     <ClCompile Include="Loss.cpp">
       <Filter>Resource Files</Filter>
     </ClCompile>
+    <ClCompile Include="Layers\MaxPoolLayer.cpp">
+      <Filter>Resource Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Layers\FlattenLayer.cpp">
+      <Filter>Resource Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Layers\DenseLayer.cpp">
+      <Filter>Resource Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Layers\ConvoLayer.cpp">
+      <Filter>Resource Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Tensor.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="DenseLayer.h">
-      <Filter>Layers</Filter>
-    </ClInclude>
-    <ClInclude Include="ConvoLayer.h">
-      <Filter>Layers</Filter>
-    </ClInclude>
-    <ClInclude Include="FlattenLayer.h">
-      <Filter>Layers</Filter>
-    </ClInclude>
-    <ClInclude Include="MaxPoolLayer.h">
-      <Filter>Layers</Filter>
     </ClInclude>
     <ClInclude Include="Sigmoid.h">
       <Filter>Header Files</Filter>
@@ -74,11 +62,23 @@
     <ClInclude Include="ImageLoader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Layers.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Loss.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Layers\MaxPoolLayer.h">
+      <Filter>Layers</Filter>
+    </ClInclude>
+    <ClInclude Include="Layers\Layers.h">
+      <Filter>Layers</Filter>
+    </ClInclude>
+    <ClInclude Include="Layers\FlattenLayer.h">
+      <Filter>Layers</Filter>
+    </ClInclude>
+    <ClInclude Include="Layers\DenseLayer.h">
+      <Filter>Layers</Filter>
+    </ClInclude>
+    <ClInclude Include="Layers\ConvoLayer.h">
+      <Filter>Layers</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

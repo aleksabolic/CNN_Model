@@ -6,7 +6,7 @@
 #include <utility>
 
 #include "Layers.h"
-#include "Tensor.h"
+#include "../Tensor.h"
 
 class ConvoLayer : public Layers{
 private:

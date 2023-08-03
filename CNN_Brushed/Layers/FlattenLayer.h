@@ -2,7 +2,7 @@
 #include <Eigen/Dense>
 #include <vector>
 #include <unordered_map>
-#include "Tensor.h"
+#include "../Tensor.h"
 #include "Layers.h"
 
 class FlattenLayer : public Layers{

@@ -14,11 +14,12 @@
 
 #include "Loss.h"
 #include "NNModel.h"
-#include "Layers.h"
-#include "DenseLayer.h"
-#include "ConvoLayer.h"
-#include "MaxPoolLayer.h"
-#include "FlattenLayer.h"
+
+#include "./Layers/Layers.h"
+#include "./Layers/DenseLayer.h"
+#include "./Layers/ConvoLayer.h"
+#include "./Layers/MaxPoolLayer.h"
+#include "./Layers/FlattenLayer.h"
 
 class Print {
 public:

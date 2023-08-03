@@ -1,5 +1,5 @@
 #pragma once
-#include "Tensor.h"
+#include "../Tensor.h"
 class Layers {
 public:
 	bool trainable;

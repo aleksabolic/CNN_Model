@@ -4,10 +4,10 @@
 #include <Eigen/Dense>
 #include <iostream>
 
-#include "Tensor.h"
+#include "../Tensor.h"
 #include "Layers.h"
 
-#include "Sigmoid.h"
+#include "../Sigmoid.h"
 
 class DenseLayer : public Layers{
 private:

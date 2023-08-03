@@ -6,7 +6,7 @@
 #include <random>
 
 #include "DenseLayer.h"
-#include "Sigmoid.h"
+#include "../Sigmoid.h"
 
 //Constructor
 DenseLayer::DenseLayer(int numNodes, const std::string& activation, bool regularization) : activation(activation), numNodes(numNodes), regularization(regularization) {

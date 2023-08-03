@@ -7,10 +7,10 @@
 
 #include "NNModel.h"
 
-#include "DenseLayer.h"
-#include "ConvoLayer.h"
-#include "FlattenLayer.h"
-#include "MaxPoolLayer.h"
+#include "./Layers/DenseLayer.h"
+#include "./Layers/ConvoLayer.h"
+#include "./Layers/FlattenLayer.h"
+#include "./Layers/MaxPoolLayer.h"
 
 #include "ImageLoader.h"
 

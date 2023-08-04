@@ -399,3 +399,8 @@ FodyWeavers.xsd
 
 #Model outputs
 Model/
+
+#visual studio garabage
+.sln
+.vcxproj
+.vcxproj.filters

@@ -132,14 +132,14 @@ Tensor DenseLayer::forward(const Tensor& inputTensor) {
 
 
 		// Calculate softmax node grads
-		#pragma omp parallel for
+		/*#pragma omp parallel for
 		for (int z = 0; z < batchSize; z++) {
 			for (int i = 0; i < numNodes; i++) {
 				for (int j = 0; j < numNodes; j++) {
 					softmaxNodeGrads[z](i, j) = (i == j) * (wx(z, j) * (1 - wx(z, j))) + (i != j) * (-wx(z, j) * wx(z, i));
 				}
 			}
-		}
+		}*/
 	}
 	else {
 		// Throw an error
@@ -155,11 +155,11 @@ Tensor DenseLayer::backward(const Tensor& dyTensor) {
 	Eigen::MatrixXd dy = dyTensor.matrix;
 
 	// Applying the activation gradient
-	if (activation != "softmax") {
-		dy = dy.cwiseProduct(nodeGrads);
+	if (activation == "linear") {
+		// Do nothing
 	}
-	else if(activation == "linear") {
-		// No nodeGrads so do nothing
+	else if (activation != "softmax") {
+		dy = dy.cwiseProduct(nodeGrads);
 	}
 	else {
 
@@ -173,6 +173,7 @@ Tensor DenseLayer::backward(const Tensor& dyTensor) {
 	BGradients = (Eigen::MatrixXd::Ones(1, dy.rows()) * dy).row(0);
 
 	outputGradients = dy * W.transpose();
+
 
 	return Tensor::tensorWrap(outputGradients);
 }

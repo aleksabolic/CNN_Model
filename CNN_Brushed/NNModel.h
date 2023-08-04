@@ -31,7 +31,7 @@ private:
 
 	Eigen::MatrixXd calcCostGradient(Eigen::MatrixXd yHat, std::vector<double> y);
 
-	Eigen::MatrixXd softmax(const Eigen::MatrixXd& x);
+	Eigen::MatrixXd softmax(Eigen::MatrixXd x);
 
 	//void adamOptimizer(double alpha, double T, double e = 10e-7, double beta1 = 0.9, double beta2 = 0.999);
 
@@ -58,6 +58,8 @@ public:
 	void fit(std::vector<std::vector<double>> input, std::vector<double> y, int epochs, double alpha, bool shuffle = false);
 
 	Eigen::MatrixXd softmaxGradient(const Eigen::MatrixXd& yHat, const Eigen::VectorXi& labels);
+
+	Eigen::MatrixXd crossEntropyGrad(const Eigen::MatrixXd& yHat, const Eigen::VectorXi& labels);
 
 	void train(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std::vector<std::string>& dataLabels);
 

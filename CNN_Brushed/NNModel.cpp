@@ -28,6 +28,7 @@ Tensor NNModel::propagateInput(const Tensor& x) {
 
 void NNModel::propagateGradient(const Tensor& dy) {
 	Tensor A = dy;
+
 	for (int i = layers.size() - 1; i >= 0; i--) {
 		A = layers[i]->backward(A);
 	}
@@ -191,26 +192,28 @@ double NNModel::calcBatchCost(const Eigen::MatrixXd& yHat, const Eigen::VectorXi
 	return cost / labels.size();
 }
 
-Eigen::MatrixXd NNModel::softmax(const Eigen::MatrixXd& x) {
-	Eigen::MatrixXd shifted_logits = x.colwise() - x.rowwise().maxCoeff();
+Eigen::MatrixXd NNModel::softmax(Eigen::MatrixXd x) {
 
-	shifted_logits = shifted_logits.array().exp();
+	auto softmaxFix = [](double x) {return std::max(x, 1e-9); };
+	auto exponent = [](double x) {return exp(x); };
 
-	for (int i = 0; i < shifted_logits.rows(); ++i)
-	{
-		double rowSum = shifted_logits.row(i).sum();
+	// subtract the maximum value from each row
+	Eigen::VectorXd rowMax = x.rowwise().maxCoeff();
+	x.colwise() -= rowMax;
 
-		// checking for zero division error
-		if (rowSum == 0)
-		{
-			rowSum += 1e-8;
-			continue;
+	//hacky fix
+	x.unaryExpr(softmaxFix);
+
+	x = x.unaryExpr(exponent);
+	for (int z = 0; z < x.rows(); z++) {
+		double sum = x.row(z).sum();
+		// hack fix
+		if (sum == 0) {
+			sum = 1;
 		}
-
-		shifted_logits.row(i) /= rowSum;
+		x.row(z) /= sum;
 	}
-
-	return shifted_logits;
+	return x;
 }
 
 Eigen::MatrixXd NNModel::softmaxGradient(const Eigen::MatrixXd& yHat, const Eigen::VectorXi& labels) {
@@ -225,6 +228,17 @@ Eigen::MatrixXd NNModel::softmaxGradient(const Eigen::MatrixXd& yHat, const Eige
 	return dy;
 }
 
+Eigen::MatrixXd NNModel::crossEntropyGrad(const Eigen::MatrixXd& yHat, const Eigen::VectorXi& labels) {
+	Eigen::MatrixXd dy = Eigen::MatrixXd::Zero(yHat.rows(), yHat.cols());
+
+	for (int z = 0; z < dy.rows(); z++) {
+		int yTrueIndex = labels[z];
+		dy(z, yTrueIndex) = 1.0;  // Construct one-hot encoded ground truth
+	}
+
+	return yHat - dy;  // Gradient is (yHat - yTrue)
+}
+
 void NNModel::train(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std::vector<std::string>& dataLabels) {
 	printf("Started training...\n");
 
@@ -236,7 +250,10 @@ void NNModel::train(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std::vec
 		labels[i] = classNames[dataLabels[i]];
 	}
 
-	Eigen::MatrixXd dy = softmaxGradient(yHat, labels);
+	// Apply softmax to logits
+	Eigen::MatrixXd softYHat = softmax(yHat);
+
+	Eigen::MatrixXd dy = crossEntropyGrad(softYHat, labels);
 
 	propagateGradient(Tensor::tensorWrap(dy));
 
@@ -247,7 +264,7 @@ void NNModel::train(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std::vec
 		layer->gradientDescent(0.01);
 	}
 
-	printf("Finished training...  Cost: %f\n", calcBatchCost(yHat, labels));
+	printf("Finished training...  Cost: %f\n", calcBatchCost(softYHat, labels));
 
 	saveWeights("./Model/firstModel");
 }
@@ -440,7 +457,7 @@ void NNModel::checkGrad(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std:
 	for (auto& layer : layers) {
 		layer->addStuff(dO);
 	}
-
+	std::cout << dO.size() << std::endl;
 	// Calculate dOapprox
 	std::vector<double> dOapprox;
 	double epsilon = 1e-7;
@@ -454,6 +471,7 @@ void NNModel::checkGrad(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std:
 				double costMinus = calcCost(dataSet, dataLabels);
 				layer->W(i, j) = temp;
 				dOapprox.push_back((costPlus - costMinus) / (2 * epsilon));
+				std::cout << "done" << std::endl;
 			}
 		}
 		for (int i = 0; i < layer->b.size(); i++) {

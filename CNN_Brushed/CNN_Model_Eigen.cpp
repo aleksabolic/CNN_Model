@@ -66,15 +66,17 @@ int main() {
 
 	model.compile(32, 3, 45, 45);
 
-	std::string path = "";
+	std::string path = "C:\\Users\\aleks\\OneDrive\\Desktop\\train_images";
 	std::vector<std::string> classNames = ImageLoader::subfoldersNames(path);
 
-	model.loadWeights("./Model/firstModel");
+	model.gradientChecking(path, classNames);
+
+	//model.loadWeights("./Model/firstModel");
 
 	//model.fit(path, 2, classNames);
 
 	//Calculate the accuracy
-	std::cout << "Accuracy: " << model.accuracy(path) << std::endl;
+	//std::cout << "Accuracy: " << model.accuracy(path, classNames) << std::endl;
 
 	// Stop the clock
 	auto end = std::chrono::high_resolution_clock::now();

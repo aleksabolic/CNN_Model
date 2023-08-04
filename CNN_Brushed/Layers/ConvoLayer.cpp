@@ -26,7 +26,11 @@ std::unordered_map<std::string, int> ConvoLayer::initSizes(std::unordered_map<st
 
 	int outputHeight = (inputHeight - kernelSize + 2 * padding) / strides.first + 1;
 	int outputWidth = (inputWidth - kernelSize + 2 * padding) / strides.second + 1;
-	W = std::vector<std::vector<Eigen::MatrixXd>>(numFilters, std::vector<Eigen::MatrixXd>(inputChannels, Eigen::MatrixXd(kernelSize, kernelSize)));
+	//testing
+	W = Eigen::MatrixXd(numFilters, kernelSize * kernelSize * inputChannels);
+	wgt = Eigen::MatrixXd::Zero(numFilters, kernelSize * kernelSize * inputChannels);
+	//testing
+	WOld = std::vector<std::vector<Eigen::MatrixXd>>(numFilters, std::vector<Eigen::MatrixXd>(inputChannels, Eigen::MatrixXd(kernelSize, kernelSize)));
 	WGradients = std::vector<std::vector<Eigen::MatrixXd>>(numFilters, std::vector<Eigen::MatrixXd>(inputChannels, Eigen::MatrixXd::Zero(kernelSize, kernelSize)));
 	layerOutput = std::vector<std::vector<Eigen::MatrixXd>>(batchSize, std::vector<Eigen::MatrixXd>(numFilters, Eigen::MatrixXd(outputHeight, outputWidth)));
 	nodeGrads = std::vector<std::vector<Eigen::MatrixXd>>(batchSize, std::vector<Eigen::MatrixXd>(numFilters, Eigen::MatrixXd(outputHeight, outputWidth)));
@@ -38,7 +42,16 @@ std::unordered_map<std::string, int> ConvoLayer::initSizes(std::unordered_map<st
 	double std_dev = sqrt(2.0 / (inputChannels * kernelSize * kernelSize)); // He init for convolutional layers
 	std::normal_distribution<> d{0, std_dev}; // Mean 0, standard deviation calculated by He initialization
 
-	for (auto& inner_vec : W) {
+	//testing
+	for (int i = 0; i < W.rows(); ++i) {
+		for (int j = 0; j < W.cols(); ++j) {
+			W(i, j) = d(gen);
+		}
+	}
+	//testing
+
+
+	for (auto& inner_vec : WOld) {
 		for (auto& matrix : inner_vec) {
 			for (int i = 0; i < matrix.rows(); ++i) {
 				for (int j = 0; j < matrix.cols(); ++j) {
@@ -99,17 +112,17 @@ Tensor ConvoLayer::forward(const Tensor& inputTensor) {
 			}
 		}
 		
-		// filling the W matrix
-		Eigen::MatrixXd WMat = Eigen::MatrixXd(numFilters, kernelSize * kernelSize * inputChannels);
+		// filling the WOld matrix
+		/*Eigen::MatrixXd WMat = Eigen::MatrixXd(numFilters, kernelSize * kernelSize * inputChannels);
 		for (int f = 0; f < numFilters; f++) {
 			for (int c = 0; c < inputChannels; c++) {
-				Eigen::Map<Eigen::RowVectorXd> v1(W[f][c].data(), W[f][c].size());
+				Eigen::Map<Eigen::RowVectorXd> v1(WOld[f][c].data(), WOld[f][c].size());
 				WMat.block(f, c * kernelSize * kernelSize, 1, kernelSize * kernelSize) = v1;
 			}
-		}
+		}*/
 
 		// calculate the output
-		Eigen::MatrixXd output = WMat * X;
+		Eigen::MatrixXd output = W * X;
 
 		// add the bias
 		output = output.colwise() + b;
@@ -196,7 +209,7 @@ Tensor ConvoLayer::backward(const Tensor& dyTensor) {
 				Eigen::MatrixXd dyf = dy[z][f];
 				for (int i = 0; i < kernelSize; i++) {
 					for (int j = 0; j < kernelSize; j++) {
-						outputGradients[z][c].block(i, j, dyf.rows(), dyf.cols()) += dyf * W[f][c](i, j);
+						outputGradients[z][c].block(i, j, dyf.rows(), dyf.cols()) += dyf * WOld[f][c](i, j);
 					}
 				}
 			}
@@ -213,17 +226,29 @@ void ConvoLayer::gradientDescent(double alpha) {
 		std::string regularization = "l2";
 		double lambda = 0.01;
 		if (regularization == "l2") {
-			for (int f = 0; f < W.size(); f++) {
-				for (int c = 0; c < W[0].size(); c++) {
-					WGradients[f][c] += lambda * W[f][c] / batchSize;
+			for (int f = 0; f < WOld.size(); f++) {
+				for (int c = 0; c < WOld[0].size(); c++) {
+					WGradients[f][c] += lambda * WOld[f][c] / batchSize;
 				}
 			}
 		}
 	}
 
-	for (int f = 0; f < W.size(); f++) {
-		for (int c = 0; c < W[0].size(); c++) {
-			W[f][c] -= (alpha * WGradients[f][c])/batchSize;
+	//testing
+	// filling the wgt matrix
+	int inputChannels = x[0].size();
+	for (int f = 0; f < numFilters; f++) {
+		for (int c = 0; c < inputChannels; c++) {
+			Eigen::Map<Eigen::RowVectorXd> v1(WGradients[f][c].data(), WGradients[f][c].size());
+			wgt.block(f, c * kernelSize * kernelSize, 1, kernelSize * kernelSize) = v1;
+		}
+	}
+	W -= alpha * wgt / batchSize;
+	//testing
+
+	for (int f = 0; f < WOld.size(); f++) {
+		for (int c = 0; c < WOld[0].size(); c++) {
+			WOld[f][c] -= (alpha * WGradients[f][c])/batchSize;
 			WGradients[f][c].setZero();
 		}	
 	}
@@ -234,10 +259,10 @@ void ConvoLayer::gradientDescent(double alpha) {
 void ConvoLayer::saveWeights(const std::string& filename) {
 	std::ofstream outfile(filename, std::ios::binary);
 
-	int outer_size = W.size();
+	int outer_size = WOld.size();
 	outfile.write((char*)&outer_size, sizeof(int));
 	
-	for (const auto& inner_vector : W) {
+	for (const auto& inner_vector : WOld) {
 		int inner_size = inner_vector.size();
 		outfile.write((char*)&inner_size, sizeof(int));
 		
@@ -263,7 +288,7 @@ void ConvoLayer::loadWeights(const std::string& filename) {
 	int outer_size;
 	infile.read((char*)&outer_size, sizeof(int));
 
-	for (auto& inner_vector : W) {
+	for (auto& inner_vector : WOld) {
 		int inner_size;
 		infile.read((char*)&inner_size, sizeof(int));
 
@@ -280,4 +305,18 @@ void ConvoLayer::loadWeights(const std::string& filename) {
 	infile.read((char*)b.data(), size * sizeof(double));
 
 	infile.close();
+}
+
+void ConvoLayer::addStuff(std::vector<double>& dO) {
+	// adding the dw
+	for (int i = 0; i < wgt.rows(); i++) {
+		for (int j = 0; j < wgt.cols(); j++) {
+			dO.push_back(wgt(i, j));
+		}
+	}
+	
+	//adding the db
+	for (int i = 0; i < BGradients.size(); i++) {
+		dO.push_back(BGradients(i));
+	}
 }

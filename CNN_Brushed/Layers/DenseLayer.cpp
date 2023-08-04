@@ -10,8 +10,8 @@
 
 //Constructor
 DenseLayer::DenseLayer(int numNodes, const std::string& activation, bool regularization) : activation(activation), numNodes(numNodes), regularization(regularization) {
-	BGradients = Eigen::RowVectorXd::Zero(numNodes);
-	b = Eigen::RowVectorXd(numNodes);
+	BGradients = Eigen::VectorXd::Zero(numNodes);
+	b = Eigen::VectorXd(numNodes);
 	trainable = true;
 }
 
@@ -19,7 +19,7 @@ std::unordered_map<std::string, int> DenseLayer::initSizes(std::unordered_map<st
 	int inputSize = sizes["input size"];
 	batchSize = sizes["batch size"];
 
-	w = Eigen::MatrixXd(inputSize, numNodes); // Not a mistake this is w transpose
+	W = Eigen::MatrixXd(inputSize, numNodes); // Not a mistake this is w transpose
 	WGradients = Eigen::MatrixXd::Zero(inputSize, numNodes);
 	layerOutput = Eigen::MatrixXd(batchSize, numNodes);
 	x = Eigen::MatrixXd(batchSize, inputSize);
@@ -37,9 +37,9 @@ std::unordered_map<std::string, int> DenseLayer::initSizes(std::unordered_map<st
 	double std_dev = sqrt(2.0 / inputSize);  
 	std::normal_distribution<> d{0, std_dev}; // Mean 0, standard deviation calculated by He initialization
 
-	for (int i = 0; i < w.rows(); ++i) {
-		for (int j = 0; j < w.cols(); ++j) {
-			w(i, j) = d(gen);
+	for (int i = 0; i < W.rows(); ++i) {
+		for (int j = 0; j < W.cols(); ++j) {
+			W(i, j) = d(gen);
 		}
 	}
 
@@ -56,16 +56,16 @@ std::unordered_map<std::string, int> DenseLayer::initSizes(std::unordered_map<st
 }
 
 void DenseLayer::uploadWeightsBias(std::vector<std::vector<double>> wUpload, std::vector<double> bUpload) {
-	if (wUpload.size() != w.rows() || wUpload[0].size() != numNodes) {
+	if (wUpload.size() != W.rows() || wUpload[0].size() != numNodes) {
 		// <--------- Throw error ---------->
-		std::cout << wUpload.size() << " " << wUpload[0].size() << " | " << w.rows() << " " << numNodes;
+		std::cout << wUpload.size() << " " << wUpload[0].size() << " | " << W.rows() << " " << numNodes;
 		std::cout << ":(" << std::endl;
 	}
 	else {
 		// Transpose the w 
 		for (int i = 0; i < wUpload.size(); i++) {
 			for (int j = 0; j < wUpload[0].size(); j++) {
-				w(i, j) = wUpload[i][j];
+				W(i, j) = wUpload[i][j];
 			}
 		}
 		for (int i = 0; i < bUpload.size(); i++) {
@@ -80,9 +80,12 @@ Tensor DenseLayer::forward(const Tensor& inputTensor) {
 	Eigen::MatrixXd xInput = inputTensor.matrix;
 	x = xInput; // batch matrix
 
-	Eigen::MatrixXd wx = x * w;
+	Eigen::MatrixXd wx = x * W;
 
-	wx.rowwise() += b;
+	//change b to row vector
+	Eigen::RowVectorXd rowVector = b.transpose();
+
+	wx.rowwise() += rowVector;
 
 	auto sigmoid = [](double x) { return 1.0 / (1.0 + std::exp(-x)); };
 	auto sigmoidDeriv = [](double x) { return Sigmoid::sigmoid(x) * (1 - Sigmoid::sigmoid(x)); };
@@ -169,7 +172,7 @@ Tensor DenseLayer::backward(const Tensor& dyTensor) {
 
 	BGradients = (Eigen::MatrixXd::Ones(1, dy.rows()) * dy).row(0);
 
-	outputGradients = dy * w.transpose();
+	outputGradients = dy * W.transpose();
 
 	return Tensor::tensorWrap(outputGradients);
 }
@@ -181,11 +184,11 @@ void DenseLayer::gradientDescent(double alpha) {
 		std::string regularization = "l2";
 		double lambda = 0.01;
 		if (regularization == "l2") {
-			WGradients += (lambda * w) / batchSize;
+			WGradients += (lambda * W) / batchSize;
 		}
 	}
 	
-	w = w - ((alpha * WGradients) / batchSize);
+	W = W - ((alpha * WGradients) / batchSize);
 	b = b - ((alpha * BGradients) / batchSize);
 
 	// Refresh the gradients
@@ -196,11 +199,11 @@ void DenseLayer::gradientDescent(double alpha) {
 void DenseLayer::saveWeights(const std::string& filename) {
 	std::ofstream outfile(filename, std::ios::binary);
 
-	int rows = w.rows();
-	int cols = w.cols();
+	int rows = W.rows();
+	int cols = W.cols();
 	outfile.write((char*)&rows, sizeof(int));
 	outfile.write((char*)&cols, sizeof(int));
-	outfile.write((char*)w.data(), rows * cols * sizeof(double));
+	outfile.write((char*)W.data(), rows * cols * sizeof(double));
 
 	int size = b.size();
 	outfile.write((char*)&size, sizeof(int));
@@ -215,11 +218,25 @@ void DenseLayer::loadWeights(const std::string& filename) {
 	int rows, cols;
 	infile.read((char*)&rows, sizeof(int));
 	infile.read((char*)&cols, sizeof(int));
-	infile.read((char*)w.data(), rows * cols * sizeof(double));
+	infile.read((char*)W.data(), rows * cols * sizeof(double));
 
 	int size;
 	infile.read((char*)&size, sizeof(int));
 	infile.read((char*)b.data(), size * sizeof(double));
 
 	infile.close();
+}
+
+void DenseLayer::addStuff(std::vector<double>& dO) {
+	// adding the dw
+	for (int i = 0; i < WGradients.rows(); i++) {
+		for (int j = 0; j < WGradients.cols(); j++) {
+			dO.push_back(WGradients(i, j));
+		}
+	}
+
+	//adding the db
+	for (int i = 0; i < BGradients.size(); i++) {
+		dO.push_back(BGradients(i));
+	}
 }

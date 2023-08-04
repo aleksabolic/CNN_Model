@@ -169,11 +169,11 @@ double NNModel::calcCost(std::vector < std::vector < Eigen::MatrixXd > > x, std:
 	double cost = 0.0;
 
 	Eigen::MatrixXd yHat = propagateInput(Tensor::tensorWrap(x)).matrix;
+	double epsilon = 1e-7;
 
 	for (int z = 0; z < yTrue.size(); z++) {
 		int yTrueIndex = classNames[yTrue[z]];
-		double loss = -log(yHat(z,yTrueIndex));
-		cost += loss;
+		cost += -std::log(yHat(z,yTrueIndex) + epsilon);
 	}
 	return cost / yTrue.size();
 }
@@ -377,6 +377,8 @@ double NNModel::calcAccuracy(std::vector<std::vector<double>> input, std::vector
 void NNModel::calcAccuracy(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std::vector<std::string>& dataLabels) {
 	Eigen::MatrixXd yHat = predict(dataSet);
 
+	std::cout << yHat.row(0).sum() << std::endl;
+
 	// Convert the string labels to int labels
 	Eigen::VectorXi labels = Eigen::VectorXi::Zero(dataLabels.size());
 	for (int i = 0; i < dataLabels.size(); i++) {
@@ -386,15 +388,22 @@ void NNModel::calcAccuracy(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, s
 	for (int z = 0; z < yHat.rows(); z++) {
 		Eigen::MatrixXd::Index maxIndex;
 		yHat.row(z).maxCoeff(&maxIndex);
+		std::cout<< "Predicted: " << maxIndex << " Actual: " << labels[z] << std::endl;
 		if (labels[z] == maxIndex) {
 			modelAccuracy++;
 		}
 	}
 
 	datasetSize += yHat.rows();
+	std::cout<< "Accuracy: " << modelAccuracy << std::endl;
 }
 
-double NNModel::accuracy(std::string path) {
+double NNModel::accuracy(std::string path, std::vector<std::string> classNamesS) {
+
+	// create the map with the string to its index pairs
+	for (int i = 0; i < classNamesS.size(); i++) {
+		classNames[classNamesS[i]] = i;
+	}
 
 	modelAccuracy = 0;
 	datasetSize = 0;
@@ -406,4 +415,88 @@ double NNModel::accuracy(std::string path) {
 	
 	modelAccuracy /= datasetSize;
 	return 100 * (1- modelAccuracy);
+}
+
+
+void NNModel::checkGrad(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std::vector<std::string>& dataLabels) {
+	
+	//Convert the string labels to int labels
+	Eigen::VectorXi labels = Eigen::VectorXi::Zero(dataLabels.size());
+	for (int i = 0; i < dataLabels.size(); i++) {
+		labels[i] = classNames[dataLabels[i]];
+	}
+
+
+	//<--------------------------------------------------------------->
+
+
+	Eigen::MatrixXd yHat = propagateInput(Tensor::tensorWrap(dataSet)).matrix;
+
+	Eigen::MatrixXd dy = softmaxGradient(yHat, labels);
+
+	propagateGradient(Tensor::tensorWrap(dy));
+
+	std::vector<double> dO;
+	for (auto& layer : layers) {
+		layer->addStuff(dO);
+	}
+
+	// Calculate dOapprox
+	std::vector<double> dOapprox;
+	double epsilon = 1e-7;
+	for (auto& layer : layers) {
+		for (int i = 0; i < layer->W.rows(); i++) {
+			for (int j = 0; j < layer->W.cols(); j++) {
+				double temp = layer->W(i, j);
+				layer->W(i, j) = temp + epsilon;
+				double costPlus = calcCost(dataSet, dataLabels);
+				layer->W(i, j) = temp - epsilon;
+				double costMinus = calcCost(dataSet, dataLabels);
+				layer->W(i, j) = temp;
+				dOapprox.push_back((costPlus - costMinus) / (2 * epsilon));
+			}
+		}
+		for (int i = 0; i < layer->b.size(); i++) {
+			double temp = layer->b[i];
+			layer->b[i] = temp + epsilon;
+			double costPlus = calcCost(dataSet, dataLabels);
+			layer->b[i] = temp - epsilon;
+			double costMinus = calcCost(dataSet, dataLabels);
+			layer->b[i] = temp;
+			dOapprox.push_back((costPlus - costMinus) / (2 * epsilon));
+		}
+	}	
+
+	double normDiff = 0.0;
+	double normDO = 0.0;
+	double normDOApprox = 0.0;
+
+	for (int i = 0; i < dO.size(); i++) {
+		normDiff += (dO[i] - dOapprox[i]) * (dO[i] - dOapprox[i]);
+		normDO += dO[i] * dO[i];
+		normDOApprox += dOapprox[i] * dOapprox[i];
+	}
+
+	normDiff = std::sqrt(normDiff);
+	normDO = std::sqrt(normDO);
+	normDOApprox = std::sqrt(normDOApprox);
+
+	double sumNorm = normDO + normDOApprox;
+	double relativeDifference = normDiff / sumNorm;
+
+	std::cout << "Relative difference: " << relativeDifference << std::endl;
+
+}
+
+void NNModel::gradientChecking(std::string path, std::vector<std::string> classNamesS) {
+
+	// create the map with the string to its index pairs
+	for (int i = 0; i < classNamesS.size(); i++) {
+		classNames[classNamesS[i]] = i;
+	}
+
+	ImageLoader::readImages(path, batchSize, [this](std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std::vector<std::string>& dataLabels) {
+		this->checkGrad(dataSet, dataLabels);
+		});
+	
 }

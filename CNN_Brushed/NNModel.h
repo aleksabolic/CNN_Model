@@ -72,9 +72,15 @@ public:
 
 	void calcAccuracy(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std::vector<std::string>& dataLabels);
 
-	double accuracy(std::string path);
+	double accuracy(std::string path, std::vector<std::string> classNamesS);
 
 	void loadWeights(const std::string& filename);
 
 	void saveWeights(const std::string& filename);
+
+	//testing 
+	void checkGrad(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std::vector<std::string>& dataLabels);
+
+	void gradientChecking(std::string path, std::vector<std::string> classNamesS);
+	//testing
 };

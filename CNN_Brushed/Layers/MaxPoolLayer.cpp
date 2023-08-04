@@ -102,3 +102,9 @@ void MaxPoolLayer::saveWeights(const std::string& filename) {
 void MaxPoolLayer::loadWeights(const std::string& filename) {
 	// Nothing to do here
 }
+
+//testing
+void MaxPoolLayer::addStuff(std::vector<double>& dO){
+	// Nothing to do here
+}
+//testing

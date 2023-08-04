@@ -17,8 +17,9 @@ private:
 	std::string activation;
 	bool regularization;
 public:
-	Eigen::MatrixXd x, w, WGradients, layerOutput, outputGradients, nodeGrads; //w is transposed by default
-	Eigen::RowVectorXd b, BGradients;
+	//removed w for testing
+	Eigen::MatrixXd x, WGradients, layerOutput, outputGradients, nodeGrads; //w is transposed by default
+	Eigen::VectorXd BGradients;
 	std::vector<Eigen::MatrixXd> softmaxNodeGrads;
 
 	//Constructor
@@ -37,4 +38,8 @@ public:
 	void saveWeights(const std::string& filename) override;
 
 	void loadWeights(const std::string& filename) override;
+
+	//testing
+	void addStuff(std::vector<double>& dO) override;
+	//testing
 };

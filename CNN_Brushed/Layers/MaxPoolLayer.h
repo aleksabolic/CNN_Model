@@ -24,4 +24,8 @@ public:
 	void saveWeights(const std::string& filename) override;
 
 	void loadWeights(const std::string& filename) override;
+
+	//testing
+	void addStuff(std::vector<double>& dO) override;
+	//testing
 };

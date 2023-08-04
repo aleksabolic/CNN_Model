@@ -69,3 +69,9 @@ void FlattenLayer::saveWeights(const std::string& filename) {
 void FlattenLayer::loadWeights(const std::string& filename) {
 	// Nothing to do here
 }
+
+//testing
+void FlattenLayer::addStuff(std::vector<double>& dO) {
+	// Nothing to do here
+}
+//testing

@@ -48,18 +48,14 @@ std::unordered_map<std::string, int> ConvoLayer::initSizes(std::unordered_map<st
 			W(i, j) = d(gen);
 		}
 	}
-	//testing
-
-
-	for (auto& inner_vec : WOld) {
-		for (auto& matrix : inner_vec) {
-			for (int i = 0; i < matrix.rows(); ++i) {
-				for (int j = 0; j < matrix.cols(); ++j) {
-					matrix(i, j) = d(gen);
-				}
-			}
+		//init WOld
+	for (int f = 0; f < numFilters; f++) {
+		for (int c = 0; c < inputChannels; c++) {
+			Eigen::RowVectorXd v1 = W.block(f, c * kernelSize * kernelSize, 1, kernelSize * kernelSize);
+			WOld[f][c] = Eigen::Map<Eigen::MatrixXd>(v1.data(), kernelSize, kernelSize);
 		}
 	}
+	//testing
 
 	for (int i = 0; i < b.size(); ++i) {
 		b(i) = d(gen);
@@ -111,15 +107,6 @@ Tensor ConvoLayer::forward(const Tensor& inputTensor) {
 				}
 			}
 		}
-		
-		// filling the WOld matrix
-		/*Eigen::MatrixXd WMat = Eigen::MatrixXd(numFilters, kernelSize * kernelSize * inputChannels);
-		for (int f = 0; f < numFilters; f++) {
-			for (int c = 0; c < inputChannels; c++) {
-				Eigen::Map<Eigen::RowVectorXd> v1(WOld[f][c].data(), WOld[f][c].size());
-				WMat.block(f, c * kernelSize * kernelSize, 1, kernelSize * kernelSize) = v1;
-			}
-		}*/
 
 		// calculate the output
 		Eigen::MatrixXd output = W * X;
@@ -165,6 +152,12 @@ Tensor ConvoLayer::backward(const Tensor& dyTensor) {
 		int outputWidth = layerOutput[0][0].cols();
 		int outputSize = outputHeight * outputWidth;
 
+		Eigen::VectorXd DY = Eigen::VectorXd(batchSize * outputSize);
+		// Filling the DY vector
+		for (int z = 0; z < batchSize; z++) {
+			DY.segment(z * outputSize, outputSize) = Eigen::VectorXd::Map(dy[z][f].data(), outputSize);
+		}
+
 		#pragma omp parallel for
 		for (int i = 0; i < kernelSize; i++) {
 			for (int j = 0; j < kernelSize; j++) {
@@ -173,14 +166,8 @@ Tensor ConvoLayer::backward(const Tensor& dyTensor) {
 				// Filling the X matrix
 				for (int c = 0; c < inputChannels; ++c) {
 					for (int z = 0; z < batchSize; ++z) {
-						X.row(c).segment(z * outputSize, outputSize) = Eigen::Map<Eigen::RowVectorXd>(x[z][c].block(i, j, outputHeight, outputWidth).data(), outputHeight * outputWidth);
+						X.row(c).segment(z * outputSize, outputSize) = Eigen::Map<Eigen::RowVectorXd>(x[z][c].block(i, j, outputHeight, outputWidth).data(), outputSize);
 					}
-				}
-
-				Eigen::VectorXd DY = Eigen::VectorXd(batchSize * outputSize);
-				// Filling the DY vector
-				for (int z = 0; z < batchSize; z++) {
-					DY.segment(z * outputSize, outputSize) = Eigen::VectorXd::Map(dy[z][f].data(), outputSize);
 				}
 
 				Eigen::MatrixXd WGradientrow = X * DY;
@@ -222,7 +209,7 @@ Tensor ConvoLayer::backward(const Tensor& dyTensor) {
 void ConvoLayer::gradientDescent(double alpha) {
 
 	//check if the layer should be regularized
-	if (regularization) {
+	/*if (regularization) {
 		std::string regularization = "l2";
 		double lambda = 0.01;
 		if (regularization == "l2") {
@@ -232,7 +219,7 @@ void ConvoLayer::gradientDescent(double alpha) {
 				}
 			}
 		}
-	}
+	}*/
 
 	//testing
 	// filling the wgt matrix
@@ -244,7 +231,6 @@ void ConvoLayer::gradientDescent(double alpha) {
 		}
 	}
 	W -= alpha * wgt / batchSize;
-	//testing
 
 	for (int f = 0; f < WOld.size(); f++) {
 		for (int c = 0; c < WOld[0].size(); c++) {
@@ -305,6 +291,14 @@ void ConvoLayer::loadWeights(const std::string& filename) {
 	infile.read((char*)b.data(), size * sizeof(double));
 
 	infile.close();
+
+	// fill the W with the WOld
+	for (int f = 0; f < numFilters; f++) {
+		for (int c = 0; c < WOld[0].size(); c++) {
+			Eigen::Map<Eigen::RowVectorXd> v1(WOld[f][c].data(), WOld[f][c].size());
+			W.block(f, c * kernelSize * kernelSize, 1, kernelSize * kernelSize) = v1;
+		}
+	}
 }
 
 void ConvoLayer::addStuff(std::vector<double>& dO) {

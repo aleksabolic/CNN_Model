@@ -4,7 +4,6 @@
 #include <Eigen/Dense>
 #include "Layers.h"
 
-// I dont need to save the input ??
 class MaxPoolLayer : public Layers{
 public:
 	int kernelSize, batchSize, stride;

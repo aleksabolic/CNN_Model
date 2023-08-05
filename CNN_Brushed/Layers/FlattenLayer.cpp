@@ -36,7 +36,6 @@ Tensor FlattenLayer::forward(const Tensor& inputTensor) {
 			index += vec.size();
 		}
 	}
-
 	return Tensor::tensorWrap(output);
 }
 
@@ -54,7 +53,6 @@ Tensor FlattenLayer::backward(const Tensor& dyTensor) {
 			output[z][c] = Eigen::Map<const Eigen::MatrixXd>(channel.data(), inputHeight, inputWidth);
 		}
 	}
-
 	return Tensor::tensorWrap(output);
 }
 

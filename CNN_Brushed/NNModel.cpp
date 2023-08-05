@@ -244,6 +244,7 @@ void NNModel::train(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std::vec
 
 	Eigen::MatrixXd yHat = propagateInput(Tensor::tensorWrap(dataSet)).matrix;
 
+
 	// Convert the string labels to int labels
 	Eigen::VectorXi labels = Eigen::VectorXi::Zero(dataLabels.size());
 	for (int i = 0; i < dataLabels.size(); i++) {
@@ -255,13 +256,17 @@ void NNModel::train(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std::vec
 
 	Eigen::MatrixXd dy = crossEntropyGrad(softYHat, labels);
 
+	//std::cout << "<-----------------------yHat----------------------->" << std::endl;
+	//std::cout << dy << std::endl;
+	//std::cout << "<-----------------------yHat----------------------->" << std::endl;
+
 	propagateGradient(Tensor::tensorWrap(dy));
 
 	//adamOptimizer(0.0001, 15);
 
 	// gradeint descent
 	for (auto& layer : layers) {
-		layer->gradientDescent(0.01);
+		layer->gradientDescent(0.001);
 	}
 
 	printf("Finished training...  Cost: %f\n", calcBatchCost(softYHat, labels));
@@ -449,7 +454,7 @@ void NNModel::checkGrad(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std:
 
 	Eigen::MatrixXd yHat = propagateInput(Tensor::tensorWrap(dataSet)).matrix;
 
-	Eigen::MatrixXd dy = softmaxGradient(yHat, labels);
+	Eigen::MatrixXd dy = crossEntropyGrad(yHat, labels);
 
 	propagateGradient(Tensor::tensorWrap(dy));
 
@@ -471,7 +476,6 @@ void NNModel::checkGrad(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std:
 				double costMinus = calcCost(dataSet, dataLabels);
 				layer->W(i, j) = temp;
 				dOapprox.push_back((costPlus - costMinus) / (2 * epsilon));
-				std::cout << "done" << std::endl;
 			}
 		}
 		for (int i = 0; i < layer->b.size(); i++) {

@@ -52,28 +52,28 @@ int main() {
 	auto start = std::chrono::high_resolution_clock::now();
 
 	std::vector<std::shared_ptr<Layers>> input;
-	input.push_back(std::make_shared<ConvoLayer>(64,3,pair(1,1),0, "relu"));
-	input.push_back(std::make_shared<MaxPoolLayer>(2,2));
-	input.push_back(std::make_shared<ConvoLayer>(64, 3, pair(1, 1), 0, "relu"));
-	input.push_back(std::make_shared<MaxPoolLayer>(2,2));
-	input.push_back(std::make_shared<ConvoLayer>(32, 3, pair(1, 1), 0, "relu"));
-	input.push_back(std::make_shared<MaxPoolLayer>(2,2));
+	//input.push_back(std::make_shared<ConvoLayer>(64,3,pair(1,1),0, "relu"));
+	//input.push_back(std::make_shared<MaxPoolLayer>(2,2));
+	//input.push_back(std::make_shared<ConvoLayer>(64, 3, pair(1, 1), 0, "relu"));
+	//input.push_back(std::make_shared<MaxPoolLayer>(2,2));
+	input.push_back(std::make_shared<ConvoLayer>(3, 3, pair(1, 1), 0, "relu"));
+	input.push_back(std::make_shared<MaxPoolLayer>(5,5));
 	input.push_back(std::make_shared<FlattenLayer>());
-	input.push_back(std::make_shared<DenseLayer>(256,"relu"));
+	input.push_back(std::make_shared<DenseLayer>(2,"relu"));
 	input.push_back(std::make_shared<DenseLayer>(82, "linear"));
 
 	NNModel model(input);
 
-	model.compile(32, 3, 45, 45);
+	model.compile(32, 1, 45,45);
 
 	std::string path = "C:\\Users\\aleks\\OneDrive\\Desktop\\train_images";
 	std::vector<std::string> classNames = ImageLoader::subfoldersNames(path);
 
-	//model.gradientChecking(path, classNames);
+	model.gradientChecking(path, classNames);
 
 	//model.loadWeights("./Model/firstModel");
 
-	model.fit(path, 2, classNames);
+	//model.fit(path, 2, classNames);
 
 	//Calculate the accuracy
 	//std::cout << "Accuracy: " << model.accuracy(path, classNames) << std::endl;

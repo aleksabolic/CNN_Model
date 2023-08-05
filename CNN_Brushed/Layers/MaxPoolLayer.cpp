@@ -88,6 +88,7 @@ Tensor MaxPoolLayer::backward(const Tensor& dyTensor) {
 
 		}
 	}
+
 	return Tensor::tensorWrap(gradGate);
 }
 

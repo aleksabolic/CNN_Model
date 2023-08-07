@@ -18,12 +18,17 @@ std::unordered_map<std::string, int> FlattenLayer::initSizes(std::unordered_map<
 	std::unordered_map<std::string, int> outputSizes;
 	outputSizes["batch size"] = batchSize;
 	outputSizes["input size"] = inputChannels * inputHeight * inputWidth;
+
 	return outputSizes;
 }
 
 Tensor FlattenLayer::forward(const Tensor& inputTensor) {
 
 	std::vector<std::vector<Eigen::MatrixXd>> input = inputTensor.matrix4d;
+
+	/*std::cout << "---------------------flatten            input--------------------------------\n";
+	Tensor::tensorWrap(input).print();
+	std::cout << "---------------------flatten            input--------------------------------\n";*/
 
 	Eigen::MatrixXd output = Eigen::MatrixXd(batchSize, input[0].size() * input[0][0].size());
 
@@ -42,6 +47,11 @@ Tensor FlattenLayer::forward(const Tensor& inputTensor) {
 Tensor FlattenLayer::backward(const Tensor& dyTensor) {
 
 	Eigen::MatrixXd dy = dyTensor.matrix;
+
+
+	/*std::cout << "---------------------flatt--------------------------------\n";
+	Tensor::tensorWrap(dy).print();
+	std::cout << "---------------------flatt--------------------------------\n";*/
 
 	std::vector<std::vector<Eigen::MatrixXd>> output = std::vector<std::vector<Eigen::MatrixXd>>(batchSize, std::vector<Eigen::MatrixXd>(inputChannels, Eigen::MatrixXd(inputHeight, inputWidth)));
 

@@ -16,6 +16,8 @@ std::unordered_map<std::string, int> MaxPoolLayer::initSizes(std::unordered_map<
 	int inputWidth = sizes["input width"];
 	batchSize = sizes["batch size"];
 
+	//std::cout<<inputChannels<<"x"<<inputHeight<<"x"<<inputWidth<<std::endl;
+
 	int outputHeight = (inputHeight - kernelSize) / stride + 1;
 	int outputWidth = (inputWidth - kernelSize) / stride + 1;
 	layerOutput = std::vector<std::vector<Eigen::MatrixXd>>(batchSize, std::vector<Eigen::MatrixXd>(inputChannels, Eigen::MatrixXd(outputHeight, outputWidth)));
@@ -28,12 +30,17 @@ std::unordered_map<std::string, int> MaxPoolLayer::initSizes(std::unordered_map<
 	outputSizes["input height"] = outputHeight;
 	outputSizes["input width"] = outputWidth;
 	outputSizes["batch size"] = batchSize;
+
 	return outputSizes;
 }
 
 Tensor MaxPoolLayer::forward(const Tensor& inputTensor) {
 
 	std::vector<std::vector<Eigen::MatrixXd>> input = inputTensor.matrix4d;
+
+	/*std::cout << "---------------------mpl input--------------------------------\n";
+	Tensor::tensorWrap(input).print();
+	std::cout << "---------------------mpl input--------------------------------\n";*/
 
 	int outputRows = layerOutput[0][0].rows();
 	int outputCols = layerOutput[0][0].cols();
@@ -71,6 +78,10 @@ Tensor MaxPoolLayer::forward(const Tensor& inputTensor) {
 
 Tensor MaxPoolLayer::backward(const Tensor& dyTensor) {
 	std::vector<std::vector<Eigen::MatrixXd>> dy = dyTensor.matrix4d;
+
+	/*std::cout << "---------------------mpl--------------------------------\n";
+	Tensor::tensorWrap(dy).print();
+	std::cout << "---------------------mpl--------------------------------\n";*/
 	#pragma omp parallel for
 	for (int z = 0; z < dy.size(); z++) {
 		#pragma omp parallel for

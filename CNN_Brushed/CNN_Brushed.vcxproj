@@ -143,18 +143,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Bce.cpp" />
     <ClCompile Include="CNN_Model_Eigen.cpp" />
     <ClCompile Include="ImageLoader.cpp" />
     <ClCompile Include="Layers\ConvoLayer.cpp" />
     <ClCompile Include="Layers\DenseLayer.cpp" />
     <ClCompile Include="Layers\FlattenLayer.cpp" />
     <ClCompile Include="Layers\MaxPoolLayer.cpp" />
-    <ClCompile Include="Loss.cpp" />
     <ClCompile Include="NNModel.cpp" />
+    <ClCompile Include="Scce.cpp" />
     <ClCompile Include="Sigmoid.cpp" />
     <ClCompile Include="Tensor.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Bce.h" />
     <ClInclude Include="ImageLoader.h" />
     <ClInclude Include="Layers\ConvoLayer.h" />
     <ClInclude Include="Layers\DenseLayer.h" />
@@ -163,6 +165,7 @@
     <ClInclude Include="Layers\MaxPoolLayer.h" />
     <ClInclude Include="Loss.h" />
     <ClInclude Include="NNModel.h" />
+    <ClInclude Include="Scce.h" />
     <ClInclude Include="Sigmoid.h" />
     <ClInclude Include="Tensor.h" />
   </ItemGroup>

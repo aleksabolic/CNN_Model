@@ -4,9 +4,12 @@ class Layers {
 public:
 	bool trainable;
 
-	//testing
 	Eigen::MatrixXd W;
 	Eigen::VectorXd b;
+
+	//testing
+	Eigen::MatrixXd WGradients;
+	Eigen::VectorXd BGradients;
 	//testing
 
 	virtual ~Layers() {}

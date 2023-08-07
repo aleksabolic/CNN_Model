@@ -13,6 +13,8 @@
 #include <opencv2/core/eigen.hpp>
 
 #include "Loss.h"
+#include "Scce.h"
+#include "Bce.h"
 #include "NNModel.h"
 
 #include "./Layers/Layers.h"
@@ -47,31 +49,109 @@ public:
 	}
 };
 
+class CsvLoader {
+public:
+	static void LoadX(std::vector<std::vector<double>>& x, std::string path) {
+
+		std::ifstream file(path);
+		if (file.is_open()) {
+			std::string line;
+			while (std::getline(file, line)) {
+				// Process each line of the CSV file
+				std::stringstream ss(line);
+				std::string token;
+				std::vector<double> val;
+
+				while (std::getline(ss, token, ',')) {
+					double value = std::stod(token); // Convert token to double
+					val.push_back(value);
+				}
+				x.push_back(val);
+			}
+			file.close();
+		}
+		else {
+			std::cout << "Failed to open file!" << std::endl;
+		}
+	}
+
+	static void LoadY(std::vector<double>& y, std::string path) {
+
+		std::ifstream file(path);
+		if (file.is_open()) {
+			std::string line;
+			while (std::getline(file, line)) {
+				// Process each line of the CSV file
+				double value = std::stod(line); // Convert token to double
+
+				y.push_back(value);
+			}
+			file.close();
+		}
+		else {
+			std::cout << "Failed to open file!" << std::endl;
+		}
+	}
+};
+
+
 int main() {
+	omp_set_num_threads(10);
 
 	auto start = std::chrono::high_resolution_clock::now();
 
 	std::vector<std::shared_ptr<Layers>> input;
-	//input.push_back(std::make_shared<ConvoLayer>(64,3,pair(1,1),0, "relu"));
-	//input.push_back(std::make_shared<MaxPoolLayer>(2,2));
-	//input.push_back(std::make_shared<ConvoLayer>(64, 3, pair(1, 1), 0, "relu"));
-	//input.push_back(std::make_shared<MaxPoolLayer>(2,2));
-	input.push_back(std::make_shared<ConvoLayer>(3, 3, pair(1, 1), 0, "relu"));
-	input.push_back(std::make_shared<MaxPoolLayer>(5,5));
+	input.push_back(std::make_shared<ConvoLayer>(2,3,pair(1,1),0, "relu"));
+	input.push_back(std::make_shared<MaxPoolLayer>(2,2));
+	input.push_back(std::make_shared<ConvoLayer>(2, 3, pair(1, 1), 0, "relu"));
+	input.push_back(std::make_shared<MaxPoolLayer>(2,2));
+	input.push_back(std::make_shared<ConvoLayer>(2, 3, pair(1, 1), 0, "relu"));
+	input.push_back(std::make_shared<MaxPoolLayer>(2,2));
 	input.push_back(std::make_shared<FlattenLayer>());
-	input.push_back(std::make_shared<DenseLayer>(2,"relu"));
+	input.push_back(std::make_shared<DenseLayer>(1,"relu"));
 	input.push_back(std::make_shared<DenseLayer>(82, "linear"));
+	//input.push_back(std::make_shared<DenseLayer>(5, "linear"));
+	//input.push_back(std::make_shared<DenseLayer>(10, "linear"));
+	//input.push_back(std::make_shared<DenseLayer>(1, "sigmoid"));
+
+	/*std::string xTrainPath = "C:\\Users\\aleks\\OneDrive\\Desktop\\Logic Regression\\x_train.csv";
+	std::string yTrainPath = "C:\\Users\\aleks\\OneDrive\\Desktop\\Logic Regression\\y_train.csv";
+
+	std::vector<std::vector<double>> xTrain;
+	std::vector<double> yTrain;
+
+	CsvLoader::LoadX(xTrain, xTrainPath);
+	CsvLoader::LoadY(yTrain, yTrainPath);*/
 
 	NNModel model(input);
 
-	model.compile(32, 1, 45,45);
+	//Loss* loss = new BinaryCrossEntropy();
+	Loss* loss = new SparseCategoricalCrossEntropy();
+	model.compile(2, 1, 45, 45, loss);
+	
+	//model.compile(256, xTrain[0].size(), loss);
+	//model.loadWeights("./Model/scv");
+
+	////make dataset for grad check
+	//std::vector<std::vector<double>> xTrainGrad;
+	//std::vector<double> yTrainGrad;
+	//for (int i = 0; i < 256; i++) {
+	//	xTrainGrad.push_back(xTrain[i]);
+	//	yTrainGrad.push_back(yTrain[i]);
+	//}
+
+	//model.gradientChecking(xTrainGrad, yTrainGrad);
+
+	//model.fit(xTrain, yTrain, 15, 1);
+
+	//std::cout<<"Accuracy: "<<model.calcAccuracy(xTrain, yTrain, 0.5)<<std::endl;
 
 	std::string path = "C:\\Users\\aleks\\OneDrive\\Desktop\\train_images";
 	std::vector<std::string> classNames = ImageLoader::subfoldersNames(path);
 
-	model.gradientChecking(path, classNames);
-
 	//model.loadWeights("./Model/firstModel");
+
+	model.gradientChecking(path, classNames);
 
 	//model.fit(path, 2, classNames);
 

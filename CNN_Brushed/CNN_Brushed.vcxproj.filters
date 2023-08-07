@@ -33,9 +33,6 @@
     <ClCompile Include="ImageLoader.cpp">
       <Filter>Resource Files</Filter>
     </ClCompile>
-    <ClCompile Include="Loss.cpp">
-      <Filter>Resource Files</Filter>
-    </ClCompile>
     <ClCompile Include="Layers\MaxPoolLayer.cpp">
       <Filter>Resource Files</Filter>
     </ClCompile>
@@ -46,6 +43,12 @@
       <Filter>Resource Files</Filter>
     </ClCompile>
     <ClCompile Include="Layers\ConvoLayer.cpp">
+      <Filter>Resource Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Bce.cpp">
+      <Filter>Resource Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Scce.cpp">
       <Filter>Resource Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -79,6 +82,12 @@
     </ClInclude>
     <ClInclude Include="Layers\ConvoLayer.h">
       <Filter>Layers</Filter>
+    </ClInclude>
+    <ClInclude Include="Scce.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Bce.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

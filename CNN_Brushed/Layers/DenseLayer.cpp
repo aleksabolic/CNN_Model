@@ -10,8 +10,8 @@
 
 //Constructor
 DenseLayer::DenseLayer(int numNodes, const std::string& activation, bool regularization) : activation(activation), numNodes(numNodes), regularization(regularization) {
-	BGradients = Eigen::VectorXd::Zero(numNodes);
 	b = Eigen::VectorXd(numNodes);
+	vdb = Eigen::VectorXd::Zero(numNodes);
 	trainable = true;
 }
 
@@ -19,7 +19,9 @@ std::unordered_map<std::string, int> DenseLayer::initSizes(std::unordered_map<st
 	int inputSize = sizes["input size"];
 	batchSize = sizes["batch size"];
 
-	W = Eigen::MatrixXd(inputSize, numNodes); // Not a mistake this is w transpose
+	BGradients = Eigen::VectorXd::Zero(numNodes);
+	W = Eigen::MatrixXd(inputSize, numNodes); 
+	vdw = Eigen::MatrixXd::Zero(inputSize, numNodes);
 	WGradients = Eigen::MatrixXd::Zero(inputSize, numNodes);
 	layerOutput = Eigen::MatrixXd(batchSize, numNodes);
 	x = Eigen::MatrixXd(batchSize, inputSize);
@@ -52,6 +54,7 @@ std::unordered_map<std::string, int> DenseLayer::initSizes(std::unordered_map<st
 	std::unordered_map<std::string, int> outputSizes;
 	outputSizes["batch size"] = batchSize;
 	outputSizes["input size"] = numNodes;
+
 	return outputSizes;
 }
 
@@ -76,9 +79,12 @@ void DenseLayer::uploadWeightsBias(std::vector<std::vector<double>> wUpload, std
 }
 
 Tensor DenseLayer::forward(const Tensor& inputTensor) {
-
 	Eigen::MatrixXd xInput = inputTensor.matrix;
-	x = xInput; // batch matrix
+
+	/*std::cout << "---------------------dense            input--------------------------------\n";
+	Tensor::tensorWrap(x).print();
+	std::cout << "---------------------dense            input--------------------------------\n";*/
+	x = xInput;
 
 	Eigen::MatrixXd wx = x * W;
 
@@ -105,7 +111,7 @@ Tensor DenseLayer::forward(const Tensor& inputTensor) {
 	}
 	else if (activation == "sigmoid") {
 		//Calculate node grads
-		nodeGrads = wx.unaryExpr(sigmoidDeriv);
+		nodeGrads = wx.unaryExpr(sigmoidDeriv); 
 		wx = wx.unaryExpr(sigmoid);
 	}
 	else if (activation == "linear") {
@@ -154,6 +160,11 @@ Tensor DenseLayer::backward(const Tensor& dyTensor) {
 
 	Eigen::MatrixXd dy = dyTensor.matrix;
 
+
+	/*std::cout << "---------------------dense--------------------------------\n";
+	Tensor::tensorWrap(dy).print();
+	std::cout << "---------------------dense--------------------------------\n";*/
+
 	// Applying the activation gradient
 	if (activation == "linear") {
 		// Do nothing
@@ -167,7 +178,6 @@ Tensor DenseLayer::backward(const Tensor& dyTensor) {
 			dy.row(z) = dy.row(z) * softmaxNodeGrads[z];
 		}
 	}
-
 	WGradients = x.transpose() * dy;
 
 	BGradients = (Eigen::MatrixXd::Ones(1, dy.rows()) * dy).row(0);
@@ -178,19 +188,39 @@ Tensor DenseLayer::backward(const Tensor& dyTensor) {
 	return Tensor::tensorWrap(outputGradients);
 }
 
+// Gradient descent with momentum
 void DenseLayer::gradientDescent(double alpha) {
 
+	double beta = 0.9;
+
 	//check if the layer should be regularized
-	if (regularization) {
+	/*if (regularization) {
 		std::string regularization = "l2";
 		double lambda = 0.01;
 		if (regularization == "l2") {
 			WGradients += (lambda * W) / batchSize;
 		}
-	}
+	}*/
 	
-	W = W - ((alpha * WGradients) / batchSize);
-	b = b - ((alpha * BGradients) / batchSize);
+	/*vdw = beta * vdw + (1 - beta) * WGradients;
+	vdb = beta * vdb + (1 - beta) * BGradients;
+
+	W = W - (alpha* vdw);
+	b = b - (alpha * vdb);*/
+	std::cout << "00000000000000000Gradient Descent0000000000000\n";
+	std::cout << "Wgrad\n";
+	std::cout << WGradients << std::endl;
+	std::cout << "Wgrad\n";
+
+	std::cout << W << std::endl;
+
+	W = W - (alpha * WGradients)/batchSize;
+	b = b - (alpha * BGradients)/batchSize;
+
+	std::cout << W << std::endl;
+
+
+	std::cout << "00000000000000000Gradient Descent0000000000000\n";
 
 	// Refresh the gradients
 	WGradients.setZero();

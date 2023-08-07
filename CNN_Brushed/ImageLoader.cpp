@@ -42,6 +42,47 @@ vector<string> ImageLoader::subfoldersNames(string directory) {
 	return subfolders;
 }
 
+void ImageLoader::meanImage(string directory, string save_dir, int height, int width) {
+	// Store all the image paths
+	vector<string> allImages;
+	for (const auto& entry : fs::recursive_directory_iterator(directory)) {
+		if (fs::is_regular_file(entry)) {
+			allImages.push_back(entry.path().string());
+		}
+	}
+
+	Eigen::MatrixXd meanImage = Eigen::MatrixXd::Zero(height, width); // Initialize mean image
+	int totalImages = 0;
+
+	for (const auto& path : allImages) {
+		Mat image = imread(path);
+		if (!image.empty()) {
+			image.convertTo(image, CV_64F); // Convert image to double precision
+			image /= 255.0; // Rescale image
+			vector<Mat> channels(3);
+			split(image, channels);
+
+			for (auto& channel : channels) {
+				Eigen::MatrixXd eigenImage;
+				cv::cv2eigen(channel, eigenImage);
+				meanImage += eigenImage;
+				totalImages++;
+				break; // Remove this break if you want to include all channels
+			}
+		}
+		if(totalImages%10000 == 0)
+			cout << "Processed " << totalImages << " images." << endl;
+	}
+
+	meanImage /= totalImages;
+	cv::Mat meanCvImage;
+	cv::eigen2cv(meanImage, meanCvImage);
+	meanCvImage *= 255.0;
+	meanCvImage.convertTo(meanCvImage, CV_8U);
+	string savePath = save_dir + "/meanImage.png";
+	cv::imwrite(savePath, meanCvImage);
+}
+
 void ImageLoader::readImages(string directory, int batchSize, std::function<void(std::vector<std::vector<Eigen::MatrixXd>>&, std::vector<std::string>&) > callback) {
 
 	vector<vector<Eigen::MatrixXd>> dataSet;
@@ -59,6 +100,11 @@ void ImageLoader::readImages(string directory, int batchSize, std::function<void
 	unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
 	std::shuffle(allImages.begin(), allImages.end(), std::default_random_engine(seed));
 
+	//Load the mean image
+	Mat meanImage = imread("./MeanImage/meanImage.png");
+	meanImage.convertTo(meanImage, CV_64F);
+	meanImage /= 255.0;
+
 	int size = 0;
 	// Loop over shuffled image paths
 	for (const auto& path : allImages) {
@@ -71,6 +117,10 @@ void ImageLoader::readImages(string directory, int batchSize, std::function<void
 			// Split the image into its color channels
 			vector<Mat> channels(3);
 			split(image, channels);
+
+			// Split the mean image into its color channels
+			vector<Mat> meanChannels(3);
+			split(meanImage, meanChannels);	
 			
 			vector<Eigen::MatrixXd> image;
 			for (auto& channel : channels) {
@@ -78,6 +128,11 @@ void ImageLoader::readImages(string directory, int batchSize, std::function<void
 				Eigen::MatrixXd eigenImage;
 				cv::cv2eigen(channel, eigenImage);
 			
+				// Subtract the mean image
+				Eigen::MatrixXd meanChannel;
+				cv::cv2eigen(meanChannels[0], meanChannel);
+				eigenImage -= meanChannel;
+
 				// Store the Eigen::Matrix into the vector
 				image.push_back(eigenImage);
 
@@ -110,4 +165,87 @@ void ImageLoader::readImages(string directory, int batchSize, std::function<void
 			cerr << "Failed to open " << path << endl;
 		}
 	}
+}
+//void ImageLoader::readImages(string directory, int batchSize, std::function<void(std::vector<std::vector<Eigen::MatrixXd>>&, std::vector<std::string>&) > callback) {
+//
+//	vector<vector<Eigen::MatrixXd>> dataSet;
+//	vector<std::string> dataLabels;
+//
+//	int size = 0;
+//	for (const auto& entry : fs::recursive_directory_iterator(directory)) {
+//		if (fs::is_regular_file(entry)) {
+//			string path = entry.path().string();
+//			Mat image = imread(path);
+//			if (!image.empty()) {
+//				image.convertTo(image, CV_64F); // Convert image to double precision
+//				image /= 255.0; // Rescale image
+//
+//				// Split the image into its color channels
+//				vector<Mat> channels(3);
+//				split(image, channels);
+//
+//				vector<Eigen::MatrixXd> image;
+//				for (auto& channel : channels) {
+//					// Convert cv::Mat to Eigen::Matrix
+//					Eigen::MatrixXd eigenImage;
+//					cv::cv2eigen(channel, eigenImage);
+//
+//					// Store the Eigen::Matrix into the vector
+//					image.push_back(eigenImage);
+//
+//					//testing
+//					break;
+//					//testing
+//				}
+//				dataSet.push_back(image);
+//				size++;
+//
+//				// Extract the parent path and store it
+//				string className = entry.path().parent_path().filename().string();
+//				dataLabels.push_back(className);
+//			}
+//			else {
+//				cerr << "Failed to open " << path << endl;
+//			}
+//
+//			// <--------check if its the last picture-------->
+//			if (size == batchSize) {
+//				callback(dataSet, dataLabels);
+//
+//				// clear the datasets
+//				vector<vector<Eigen::MatrixXd>>().swap(dataSet);
+//				vector<std::string>().swap(dataLabels);
+//				size = 0;
+//
+//				std::cout << "Batch loaded" << std::endl;
+//			}
+//		}
+//
+//	}
+//
+//}
+Mat ImageLoader::convertEigenToCv(const std::vector<Eigen::MatrixXd>& eigenImages) {
+	if (eigenImages.size() != 3) {
+		throw std::invalid_argument("Expected 3 channels in the input vector.");
+	}
+
+	// Convert each Eigen::MatrixXd to cv::Mat and rescale
+	std::vector<cv::Mat> channels;
+	for (const auto& eigenImage : eigenImages) {
+		cv::Mat cvImage(eigenImage.rows(), eigenImage.cols(), CV_64F);
+		for (int i = 0; i < cvImage.rows; ++i) {
+			for (int j = 0; j < cvImage.cols; ++j) {
+				cvImage.at<double>(i, j) = eigenImage(i, j) * 255.0;
+			}
+		}
+		channels.push_back(cvImage);
+	}
+
+	// Merge channels into a single image
+	cv::Mat image;
+	cv::merge(channels, image);
+
+	// Convert back to 8-bit image
+	image.convertTo(image, CV_8UC3);
+	return image;
 }

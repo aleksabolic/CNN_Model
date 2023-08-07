@@ -21,6 +21,8 @@ private:
 
 	double datasetSize = 0;
 
+	Loss* loss_ptr;
+
 	std::unordered_map<std::string, int> classNames;
 
 	Tensor propagateInput(const Tensor& x);
@@ -29,11 +31,7 @@ private:
 
 	void propagateSize(const std::unordered_map<std::string, int>& sizes);
 
-	Eigen::MatrixXd calcCostGradient(Eigen::MatrixXd yHat, std::vector<double> y);
-
 	Eigen::MatrixXd softmax(Eigen::MatrixXd x);
-
-	//void adamOptimizer(double alpha, double T, double e = 10e-7, double beta1 = 0.9, double beta2 = 0.999);
 
 public:
 
@@ -43,23 +41,13 @@ public:
 
 	NNModel(const std::vector<std::shared_ptr<Layers>>& layersInput);
 
-	double calcCost(Eigen::MatrixXd x, std::vector<double> y);
-
-	double calcCost(std::vector < std::vector < Eigen::MatrixXd > > x, std::vector<std::string> yTrue);
-
-	double calcBatchCost(const Eigen::MatrixXd& yHat, const Eigen::VectorXi& labels);
-
 	// compilation for 1d inputs 
-	void compile(int batchSize1, int inputSize);
+	void compile(int batchSize1, int inputSize, Loss* loss_pointer);
 
 	// compilation for 2d inputs (images)
-	void compile(int batchSize1, int inputChannels, int inputHeight, int inputWidth);
+	void compile(int batchSize1, int inputChannels, int inputHeight, int inputWidth, Loss* loss_pointer);
 
 	void fit(std::vector<std::vector<double>> input, std::vector<double> y, int epochs, double alpha, bool shuffle = false);
-
-	Eigen::MatrixXd softmaxGradient(const Eigen::MatrixXd& yHat, const Eigen::VectorXi& labels);
-
-	Eigen::MatrixXd crossEntropyGrad(const Eigen::MatrixXd& yHat, const Eigen::VectorXi& labels);
 
 	void train(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std::vector<std::string>& dataLabels);
 
@@ -84,5 +72,6 @@ public:
 	void checkGrad(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std::vector<std::string>& dataLabels);
 
 	void gradientChecking(std::string path, std::vector<std::string> classNamesS);
+	void gradientChecking(std::vector<std::vector<double>> x, std::vector<double> y);
 	//testing
 };

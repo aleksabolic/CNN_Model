@@ -15,11 +15,11 @@ private:
 	std::string activation;
 	bool regularization;
 	//testing
-	Eigen::MatrixXd wt, wgt;
+	Eigen::MatrixXd wt, wgt, vdw;
 	//testing
 	std::vector<std::vector<Eigen::MatrixXd>> WOld, WGradients; // (numFilters, channels, h, w)
 	std::vector<std::vector<Eigen::MatrixXd>> layerOutput, outputGradients, nodeGrads; //(batch_size, numFilters, outputHeight, outputWidth)
-	Eigen::VectorXd BGradients; //(numFilters)
+	Eigen::VectorXd BGradients, vdb; //(numFilters)
 	std::vector<std::vector<Eigen::MatrixXd>> x; // (batch_size, channels, h, w)
 public:
 

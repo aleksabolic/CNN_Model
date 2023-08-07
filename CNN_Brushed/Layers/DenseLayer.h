@@ -17,9 +17,9 @@ private:
 	std::string activation;
 	bool regularization;
 public:
-	//removed w for testing
-	Eigen::MatrixXd x, WGradients, layerOutput, outputGradients, nodeGrads; //w is transposed by default
-	Eigen::VectorXd BGradients;
+	//removed wgradients and bgradients for testing
+	Eigen::MatrixXd x, layerOutput, outputGradients, nodeGrads, vdw; //w is transposed by default
+	Eigen::VectorXd vdb;
 	std::vector<Eigen::MatrixXd> softmaxNodeGrads;
 
 	//Constructor

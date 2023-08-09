@@ -6,7 +6,7 @@
 
 #include "MaxPoolLayer.h"
 
-MaxPoolLayer::MaxPoolLayer(int kernelSize, int stride) : kernelSize(kernelSize), stride(stride) {
+MaxPoolLayer::MaxPoolLayer(int kernelSize, int stride, int padding) : kernelSize(kernelSize), stride(stride), padding(padding) {
 	trainable = false;
 }
 
@@ -16,12 +16,12 @@ std::unordered_map<std::string, int> MaxPoolLayer::initSizes(std::unordered_map<
 	int inputWidth = sizes["input width"];
 	batchSize = sizes["batch size"];
 
-	//std::cout<<inputChannels<<"x"<<inputHeight<<"x"<<inputWidth<<std::endl;
+	std::cout<<inputChannels<<"x"<<inputHeight<<"x"<<inputWidth<<std::endl;
 
-	int outputHeight = (inputHeight - kernelSize) / stride + 1;
-	int outputWidth = (inputWidth - kernelSize) / stride + 1;
+	int outputHeight = (inputHeight - kernelSize + 2 * padding) / stride + 1;
+	int outputWidth = (inputWidth - kernelSize + 2 * padding) / stride + 1;
 	layerOutput = std::vector<std::vector<Eigen::MatrixXd>>(batchSize, std::vector<Eigen::MatrixXd>(inputChannels, Eigen::MatrixXd(outputHeight, outputWidth)));
-	gradGate = std::vector<std::vector<Eigen::MatrixXd>>(batchSize, std::vector<Eigen::MatrixXd>(inputChannels, Eigen::MatrixXd::Zero(inputHeight, inputWidth)));
+	gradGate = std::vector<std::vector<Eigen::MatrixXd>>(batchSize, std::vector<Eigen::MatrixXd>(inputChannels, Eigen::MatrixXd::Zero(inputHeight+2*padding, inputWidth+2*padding)));
 	outputGradients = std::vector<std::vector<Eigen::MatrixXd>>(batchSize, std::vector<Eigen::MatrixXd>(inputChannels, Eigen::MatrixXd(inputHeight, inputWidth)));
 	//x = std::vector<std::vector<Eigen::MatrixXd>>(batchSize, std::vector<Eigen::MatrixXd>(inputChannels, Eigen::MatrixXd(inputHeight, inputWidth)));
 
@@ -30,6 +30,9 @@ std::unordered_map<std::string, int> MaxPoolLayer::initSizes(std::unordered_map<
 	outputSizes["input height"] = outputHeight;
 	outputSizes["input width"] = outputWidth;
 	outputSizes["batch size"] = batchSize;
+
+	std::cout << inputChannels << "x" << outputHeight << "x" << outputWidth << std::endl;
+
 
 	return outputSizes;
 }
@@ -41,6 +44,23 @@ Tensor MaxPoolLayer::forward(const Tensor& inputTensor) {
 	/*std::cout << "---------------------mpl input--------------------------------\n";
 	Tensor::tensorWrap(input).print();
 	std::cout << "---------------------mpl input--------------------------------\n";*/
+
+	// add the padding
+	if (padding > 0) {
+		int inputRows = input[0][0].rows();
+		int inputCols = input[0][0].cols();
+
+		#pragma omp parallel for
+		for (int z = 0; z < batchSize; z++) {
+			#pragma omp parallel for
+			for (int c = 0; c < input[0].size(); c++) {
+				Eigen::MatrixXd padded(inputRows + 2 * padding, inputCols + 2 * padding);
+				padded.setConstant(-DBL_MAX);// set to -infinity
+				padded.block(padding, padding, inputRows, inputCols) = input[z][c];
+				input[z][c] = padded;
+			}
+		}
+	}
 
 	int outputRows = layerOutput[0][0].rows();
 	int outputCols = layerOutput[0][0].cols();
@@ -67,7 +87,7 @@ Tensor MaxPoolLayer::forward(const Tensor& inputTensor) {
 
 					// Update the output and gradient
 					layerOutput[z][c](i, j) = maxVal;
-					gradGate[z][c](ii + maxRow, jj + maxCol) = 1;
+					gradGate[z][c](ii + maxRow , jj + maxCol ) = 1; //mistake?
 				}
 			}
 		}
@@ -96,11 +116,11 @@ Tensor MaxPoolLayer::backward(const Tensor& dyTensor) {
 					gradGate[z][c].block(ii, jj, kernelSize, kernelSize) *= dy[z][c](i, j);				
 				}
 			}
-
+			outputGradients[z][c] = gradGate[z][c].block(padding, padding, outputGradients[0][0].rows(), outputGradients[0][0].cols());
 		}
 	}
 
-	return Tensor::tensorWrap(gradGate);
+	return Tensor::tensorWrap(outputGradients);
 }
 
 void MaxPoolLayer::gradientDescent(double alpha) {

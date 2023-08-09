@@ -6,11 +6,11 @@
 
 class MaxPoolLayer : public Layers{
 public:
-	int kernelSize, batchSize, stride;
+	int kernelSize, batchSize, stride, padding;
 	std::vector<std::vector<Eigen::MatrixXd>> layerOutput, outputGradients, gradGate; //(batch_size, numChannels, outputHeight, outputWidth)
 	//std::vector<std::vector<Eigen::MatrixXd>> x; // (batch_size, channels, h, w)
 
-	MaxPoolLayer(int kernelSize, int stride);
+	MaxPoolLayer(int kernelSize, int stride, int padding);
 
 	std::unordered_map<std::string, int> initSizes(std::unordered_map<std::string, int>& sizes) override;
 

@@ -12,6 +12,8 @@
 DenseLayer::DenseLayer(int numNodes, const std::string& activation, bool regularization) : activation(activation), numNodes(numNodes), regularization(regularization) {
 	b = Eigen::VectorXd(numNodes);
 	vdb = Eigen::VectorXd::Zero(numNodes);
+	sdb = Eigen::VectorXd::Zero(numNodes);
+	t = 1;
 	trainable = true;
 }
 
@@ -22,6 +24,7 @@ std::unordered_map<std::string, int> DenseLayer::initSizes(std::unordered_map<st
 	BGradients = Eigen::VectorXd::Zero(numNodes);
 	W = Eigen::MatrixXd(inputSize, numNodes); 
 	vdw = Eigen::MatrixXd::Zero(inputSize, numNodes);
+	sdw = Eigen::MatrixXd::Zero(inputSize, numNodes);
 	WGradients = Eigen::MatrixXd::Zero(inputSize, numNodes);
 	layerOutput = Eigen::MatrixXd(batchSize, numNodes);
 	x = Eigen::MatrixXd(batchSize, inputSize);
@@ -188,10 +191,12 @@ Tensor DenseLayer::backward(const Tensor& dyTensor) {
 	return Tensor::tensorWrap(outputGradients);
 }
 
-// Gradient descent with momentum
+// Gradient descent with momentum or adam
 void DenseLayer::gradientDescent(double alpha) {
 
-	double beta = 0.9;
+	double beta1 = 0.9;
+	double beta2 = 0.999;
+	double epsilon = 1e-8;
 
 	//check if the layer should be regularized
 	/*if (regularization) {
@@ -202,29 +207,30 @@ void DenseLayer::gradientDescent(double alpha) {
 		}
 	}*/
 	
-	/*vdw = beta * vdw + (1 - beta) * WGradients;
-	vdb = beta * vdb + (1 - beta) * BGradients;
+	vdw = beta1 * vdw + (1 - beta1) * WGradients;
+	vdb = beta1 * vdb + (1 - beta1) * BGradients;
 
-	W = W - (alpha* vdw);
-	b = b - (alpha * vdb);*/
-	std::cout << "00000000000000000Gradient Descent0000000000000\n";
-	std::cout << "Wgrad\n";
-	std::cout << WGradients << std::endl;
-	std::cout << "Wgrad\n";
+	sdw = beta2 * sdw + (1 - beta2) * WGradients.cwiseProduct(WGradients);
+	sdb = beta2 * sdb + (1 - beta2) * BGradients.cwiseProduct(BGradients);
 
-	std::cout << W << std::endl;
+	//bias correction
+	Eigen::MatrixXd vdwCorr = vdw / (1 - pow(beta1, t));
+	Eigen::VectorXd vdbCorr = vdb / (1 - pow(beta1, t));
 
-	W = W - (alpha * WGradients)/batchSize;
-	b = b - (alpha * BGradients)/batchSize;
+	Eigen::MatrixXd sdwCorr = sdw / (1 - pow(beta2, t));
+	Eigen::VectorXd sdbCorr = sdb / (1 - pow(beta2, t));
 
-	std::cout << W << std::endl;
+	W = W - (alpha * vdwCorr).cwiseQuotient(sdwCorr.unaryExpr([](double x) { return sqrt(x) + 1e-8; }));
+	b = b - (alpha * vdbCorr).cwiseQuotient(sdbCorr.unaryExpr([](double x) { return sqrt(x) + 1e-8; }));
 
-
-	std::cout << "00000000000000000Gradient Descent0000000000000\n";
+	//W = W - (alpha * WGradients)/batchSize;
+	//b = b - (alpha * BGradients)/batchSize;
 
 	// Refresh the gradients
 	WGradients.setZero();
 	BGradients.setZero();
+
+	t++;
 }
 
 void DenseLayer::saveWeights(const std::string& filename) {

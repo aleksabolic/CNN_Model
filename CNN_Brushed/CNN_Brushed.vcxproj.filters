@@ -51,6 +51,9 @@
     <ClCompile Include="Scce.cpp">
       <Filter>Resource Files</Filter>
     </ClCompile>
+    <ClCompile Include="Layers\UnflattenLayer.cpp">
+      <Filter>Resource Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Tensor.h">
@@ -88,6 +91,9 @@
     </ClInclude>
     <ClInclude Include="Bce.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Layers\UnflattenLayer.h">
+      <Filter>Layers</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -22,6 +22,7 @@
 #include "./Layers/ConvoLayer.h"
 #include "./Layers/MaxPoolLayer.h"
 #include "./Layers/FlattenLayer.h"
+#include "./Layers/UnflattenLayer.h"
 
 class Print {
 public:
@@ -101,35 +102,36 @@ int main() {
 	auto start = std::chrono::high_resolution_clock::now();
 
 	std::vector<std::shared_ptr<Layers>> input;
-	input.push_back(std::make_shared<ConvoLayer>(2,3,pair(1,1),0, "relu"));
-	input.push_back(std::make_shared<MaxPoolLayer>(2,2));
-	input.push_back(std::make_shared<ConvoLayer>(2, 3, pair(1, 1), 0, "relu"));
-	input.push_back(std::make_shared<MaxPoolLayer>(2,2));
-	input.push_back(std::make_shared<ConvoLayer>(2, 3, pair(1, 1), 0, "relu"));
-	input.push_back(std::make_shared<MaxPoolLayer>(2,2));
+	/*input.push_back(std::make_shared<ConvoLayer>(64, 3, pair(1, 1), 0, "leaky_relu"));
+	input.push_back(std::make_shared<MaxPoolLayer>(2, 2,1));
+	input.push_back(std::make_shared<ConvoLayer>(64, 3, pair(1, 1), 0, "leaky_relu"));
+	input.push_back(std::make_shared<MaxPoolLayer>(2, 2,0));
+	input.push_back(std::make_shared<ConvoLayer>(32, 3, pair(1, 1), 0, "leaky_relu"));
+	input.push_back(std::make_shared<MaxPoolLayer>(2, 2,0));
 	input.push_back(std::make_shared<FlattenLayer>());
-	input.push_back(std::make_shared<DenseLayer>(1,"relu"));
-	input.push_back(std::make_shared<DenseLayer>(82, "linear"));
-	//input.push_back(std::make_shared<DenseLayer>(5, "linear"));
-	//input.push_back(std::make_shared<DenseLayer>(10, "linear"));
-	//input.push_back(std::make_shared<DenseLayer>(1, "sigmoid"));
+	input.push_back(std::make_shared<DenseLayer>(256, "relu"));
+	input.push_back(std::make_shared<DenseLayer>(82, "softmax"));*/
+	input.push_back(std::make_shared<DenseLayer>(5, "relu"));
+	input.push_back(std::make_shared<DenseLayer>(10, "relu"));
+	input.push_back(std::make_shared<DenseLayer>(1, "sigmoid"));
 
-	/*std::string xTrainPath = "C:\\Users\\aleks\\OneDrive\\Desktop\\Logic Regression\\x_train.csv";
+
+	std::string xTrainPath = "C:\\Users\\aleks\\OneDrive\\Desktop\\Logic Regression\\x_train.csv";
 	std::string yTrainPath = "C:\\Users\\aleks\\OneDrive\\Desktop\\Logic Regression\\y_train.csv";
 
 	std::vector<std::vector<double>> xTrain;
 	std::vector<double> yTrain;
 
 	CsvLoader::LoadX(xTrain, xTrainPath);
-	CsvLoader::LoadY(yTrain, yTrainPath);*/
+	CsvLoader::LoadY(yTrain, yTrainPath);
 
 	NNModel model(input);
 
-	//Loss* loss = new BinaryCrossEntropy();
-	Loss* loss = new SparseCategoricalCrossEntropy();
-	model.compile(2, 1, 45, 45, loss);
+	Loss* loss = new BinaryCrossEntropy();
+	//Loss* loss = new SparseCategoricalCrossEntropy();
+	//model.compile(32, 1, 45, 45, loss);
 	
-	//model.compile(256, xTrain[0].size(), loss);
+	model.compile(256, xTrain[0].size(), loss);
 	//model.loadWeights("./Model/scv");
 
 	////make dataset for grad check
@@ -140,18 +142,20 @@ int main() {
 	//	yTrainGrad.push_back(yTrain[i]);
 	//}
 
+
 	//model.gradientChecking(xTrainGrad, yTrainGrad);
 
-	//model.fit(xTrain, yTrain, 15, 1);
+	//model.fit(xTrain, yTrain, 15, 0.05);
 
 	//std::cout<<"Accuracy: "<<model.calcAccuracy(xTrain, yTrain, 0.5)<<std::endl;
 
 	std::string path = "C:\\Users\\aleks\\OneDrive\\Desktop\\train_images";
-	std::vector<std::string> classNames = ImageLoader::subfoldersNames(path);
+	//std::vector<std::string> classNames = ImageLoader::subfoldersNames(path);
+	ImageLoader::meanImage(path, "./MeanImage", 45, 45);
 
 	//model.loadWeights("./Model/firstModel");
 
-	model.gradientChecking(path, classNames);
+	//model.gradientChecking(path, classNames);
 
 	//model.fit(path, 2, classNames);
 

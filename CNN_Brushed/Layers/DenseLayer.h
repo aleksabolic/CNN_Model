@@ -14,12 +14,13 @@ private:
 	int numNodes;
 	int inputSize;
 	int batchSize;
+	int t;
 	std::string activation;
 	bool regularization;
 public:
 	//removed wgradients and bgradients for testing
-	Eigen::MatrixXd x, layerOutput, outputGradients, nodeGrads, vdw; //w is transposed by default
-	Eigen::VectorXd vdb;
+	Eigen::MatrixXd x, layerOutput, outputGradients, nodeGrads, vdw, sdw; //w is transposed by default
+	Eigen::VectorXd vdb, sdb;
 	std::vector<Eigen::MatrixXd> softmaxNodeGrads;
 
 	//Constructor

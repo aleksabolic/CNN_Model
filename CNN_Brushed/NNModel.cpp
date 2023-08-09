@@ -406,7 +406,7 @@ void NNModel::checkGrad(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std:
 	
 	int index = 0;
 	int count = 0;
-	if (relativeDifference > 1e-4) {
+	if (relativeDifference > 1e-4 || true) {
 		for (int i = 0; i < dO.size(); i++) {
 
 			if (i == indexes[index]) {
@@ -414,8 +414,28 @@ void NNModel::checkGrad(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std:
 				index++;
 
 			}	
-			std::cout << dO[i] << " " << dOapprox[i] << "           Diff: " << dO[i] - dOapprox[i] << "        Percentage: "<< (dO[i] - dOapprox[i])/dO[i] *100 <<std::endl;
+			std::cout << dO[i] << " " << dOapprox[i] << "           Diff: " << dO[i] - dOapprox[i] << "        Percentage: "<< (dO[i] / dOapprox[i]) <<std::endl;
 
+		}
+		std::cin.get();
+		/*Tensor A = Tensor::tensorWrap(dataSet);
+		for (int i = 0; i < layers.size(); i++) {
+			A.print();
+			A = layers[i]->forward(A);
+		}
+		A.print();*/
+		Eigen::MatrixXd yHat = propagateInput(Tensor::tensorWrap(dataSet)).matrix;
+
+		Eigen::MatrixXd dy = loss_ptr->gradient(softmax(yHat), labels);
+
+		Tensor A = Tensor::tensorWrap(dy);
+
+		for (int i = layers.size() - 1; i >= 0; i--) {
+			std::cout<<"============================"<<std::endl;
+			A.print();
+			std::cout << "============================" << std::endl;
+
+			A = layers[i]->backward(A);
 		}
 	}
 	//saveWeights("./Model/test_model"); 

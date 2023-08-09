@@ -52,6 +52,7 @@ void ImageLoader::meanImage(string directory, string save_dir, int height, int w
 	}
 
 	Eigen::MatrixXd meanImage = Eigen::MatrixXd::Zero(height, width); // Initialize mean image
+	Eigen::MatrixXd sumSquared = Eigen::MatrixXd::Zero(height, width); // Initialize sum of squared differences
 	int totalImages = 0;
 
 	for (const auto& path : allImages) {
@@ -73,14 +74,42 @@ void ImageLoader::meanImage(string directory, string save_dir, int height, int w
 		if(totalImages%10000 == 0)
 			cout << "Processed " << totalImages << " images." << endl;
 	}
-
 	meanImage /= totalImages;
+
+	// Calculate sum of squared differences
+	for (const auto& path : allImages) {
+		Mat image = imread(path);
+		if (!image.empty()) {
+			image.convertTo(image, CV_64F);
+			image /= 255.0;
+			vector<Mat> channels(3);
+			split(image, channels);
+
+			for (auto& channel : channels) {
+				Eigen::MatrixXd eigenImage;
+				cv::cv2eigen(channel, eigenImage);
+				sumSquared += (eigenImage - meanImage).array().square().matrix();
+				break;
+			}
+		}
+	}
+	Eigen::MatrixXd sigmaImage = (sumSquared / totalImages).array().sqrt();
+
+	// Save mean image
 	cv::Mat meanCvImage;
 	cv::eigen2cv(meanImage, meanCvImage);
 	meanCvImage *= 255.0;
 	meanCvImage.convertTo(meanCvImage, CV_8U);
 	string savePath = save_dir + "/meanImage.png";
 	cv::imwrite(savePath, meanCvImage);
+
+	// Save sigma image
+	cv::Mat sigmaCvImage;
+	cv::eigen2cv(sigmaImage, sigmaCvImage);
+	sigmaCvImage *= 255.0;
+	sigmaCvImage.convertTo(sigmaCvImage, CV_8U);
+	savePath = save_dir + "/sigmaImage.png";
+	cv::imwrite(savePath, sigmaCvImage);
 }
 
 void ImageLoader::readImages(string directory, int batchSize, std::function<void(std::vector<std::vector<Eigen::MatrixXd>>&, std::vector<std::string>&) > callback) {
@@ -105,6 +134,11 @@ void ImageLoader::readImages(string directory, int batchSize, std::function<void
 	meanImage.convertTo(meanImage, CV_64F);
 	meanImage /= 255.0;
 
+	//Load the sigma image
+	Mat sigmaImage = imread("./MeanImage/sigmaImage.png");
+	sigmaImage.convertTo(meanImage, CV_64F);
+	sigmaImage /= 255.0;
+
 	int size = 0;
 	// Loop over shuffled image paths
 	for (const auto& path : allImages) {
@@ -121,6 +155,10 @@ void ImageLoader::readImages(string directory, int batchSize, std::function<void
 			// Split the mean image into its color channels
 			vector<Mat> meanChannels(3);
 			split(meanImage, meanChannels);	
+
+			// Split the sigma image into its color channels
+			vector<Mat> sigmaChannels(3);
+			split(sigmaImage, sigmaChannels);
 			
 			vector<Eigen::MatrixXd> image;
 			for (auto& channel : channels) {
@@ -128,10 +166,12 @@ void ImageLoader::readImages(string directory, int batchSize, std::function<void
 				Eigen::MatrixXd eigenImage;
 				cv::cv2eigen(channel, eigenImage);
 			
-				// Subtract the mean image
-				Eigen::MatrixXd meanChannel;
+				// Subtract the mean image and devide with sigma image
+				Eigen::MatrixXd meanChannel, sigmaChannel;
 				cv::cv2eigen(meanChannels[0], meanChannel);
+				cv::cv2eigen(sigmaChannels[0], meanChannel);
 				eigenImage -= meanChannel;
+				eigenImage = eigenImage.cwiseQuotient(sigmaChannel);
 
 				// Store the Eigen::Matrix into the vector
 				image.push_back(eigenImage);

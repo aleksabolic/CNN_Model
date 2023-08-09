@@ -150,6 +150,7 @@
     <ClCompile Include="Layers\DenseLayer.cpp" />
     <ClCompile Include="Layers\FlattenLayer.cpp" />
     <ClCompile Include="Layers\MaxPoolLayer.cpp" />
+    <ClCompile Include="Layers\UnflattenLayer.cpp" />
     <ClCompile Include="NNModel.cpp" />
     <ClCompile Include="Scce.cpp" />
     <ClCompile Include="Sigmoid.cpp" />
@@ -163,6 +164,7 @@
     <ClInclude Include="Layers\FlattenLayer.h" />
     <ClInclude Include="Layers\Layers.h" />
     <ClInclude Include="Layers\MaxPoolLayer.h" />
+    <ClInclude Include="Layers\UnflattenLayer.h" />
     <ClInclude Include="Loss.h" />
     <ClInclude Include="NNModel.h" />
     <ClInclude Include="Scce.h" />

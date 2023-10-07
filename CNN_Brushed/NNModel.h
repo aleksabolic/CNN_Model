@@ -1,4 +1,5 @@
 #pragma once
+
 #include <vector>
 #include <Eigen/Dense>
 #include <unordered_map>
@@ -10,6 +11,7 @@
 
 
 #include "ImageLoader.h"
+#include "DataLoader.h"
 
 #include "Loss.h"
 #include <algorithm>
@@ -53,6 +55,10 @@ public:
 
 	void fit(std::string path, int epochs, std::vector<std::string> classNamesS);
 
+	//fit method with dataloader class
+	template<class typeX, class typeY>
+	void fit(DataLoader<typeX, typeY>& dataLoader, int epochs, double alpha);
+
 	// Use templates maybe?
 	Eigen::MatrixXd predict(Eigen::MatrixXd x);
 
@@ -75,3 +81,34 @@ public:
 	void gradientChecking(std::vector<std::vector<double>> x, std::vector<double> y);
 	//testing
 };
+
+//fit method with data loader
+template<class typeX, class typeY>
+void NNModel::fit(DataLoader<typeX, typeY>& dataLoader, int epochs, double alpha) {
+
+	Eigen::MatrixXd input(dataLoader.batchSize, dataLoader.inputSize);
+
+	for (int j = 0; j < epochs; j++) {
+		dataLoader.LoadData([&](typeX& x, typeY& y) {
+
+			// convert x to eigen matrix
+			for (int i = 0; i < x.size(); i++) {
+				input.row(i) = Eigen::Map<Eigen::RowVectorXd>(x[i].data(), 1, x[i].size());
+			}
+
+			Eigen::MatrixXd yHat = propagateInput(Tensor::tensorWrap(input)).matrix;
+
+			Eigen::MatrixXd dy = loss_ptr->gradient(yHat, y);
+
+			propagateGradient(Tensor::tensorWrap(dy));
+
+			// gradeint descent
+			for (auto& layer : layers) {
+				layer->gradientDescent(alpha);
+			}
+			printf("Epoch: %d Cost: %f\n", j, loss_ptr->cost(yHat, y));
+
+			});
+	}
+}
+

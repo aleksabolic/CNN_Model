@@ -1,4 +1,8 @@
+
+#ifndef NNMODEL_CPP
+#define NNMODEL_CPP
 #include <vector>
+
 #include <Eigen/Dense>
 #include <unordered_map>
 #include <algorithm>
@@ -13,8 +17,10 @@
 #include "./Layers/MaxPoolLayer.h"
 
 #include "ImageLoader.h"
+#include "DataLoader.h"
 
 //#include "Loss.h"
+
 
 NNModel::NNModel(const std::vector<std::shared_ptr<Layers>>& layersInput) : layers(layersInput) {}
 
@@ -112,6 +118,11 @@ void NNModel::train(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std::vec
 	//checkGrad(dataSet, dataLabels);//testing
 	printf("Started training...\n");
 
+	for (auto name : dataLabels) {
+		std::cout<<name<<" ";
+	}
+	std::cout << std::endl;
+
 	Eigen::MatrixXd yHat = propagateInput(Tensor::tensorWrap(dataSet)).matrix;
 
 	// Convert the string labels to int labels
@@ -129,13 +140,12 @@ void NNModel::train(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std::vec
 
 	// gradeint descent
 	for (auto& layer : layers) {
-		layer->gradientDescent(1);
+		layer->gradientDescent(0.1);
 	}
 
 	printf("Finished training...  Cost: %f\n", loss_ptr->cost(softYHat, labels));
 
-
-	//saveWeights("./Model/firstModel");
+	saveWeights("./Model/clipModel");
 }
 
 void NNModel::fit(std::string path, int epochs, std::vector<std::string> classNamesS) {
@@ -151,9 +161,40 @@ void NNModel::fit(std::string path, int epochs, std::vector<std::string> classNa
 			});
 
 		printf("Epoch: %d\n", e);
-		saveWeights("./Model/firstModel");
+		saveWeights("./Model/clipModel");
 	}
 }
+
+
+////fit method with data loader
+//template<class typeX, class typeY>
+//void NNModel::fit(DataLoader<typeX, typeY>& dataLoader, int epochs, double alpha) {
+//
+//	Eigen::MatrixXd input(dataLoader.batchSize, dataLoader.inputSize);
+//
+//	for (int j = 0; j < epochs; j++) {
+//		dataLoader.LoadData([=](typeX& x, typeY& y) {
+//
+//			// convert x to eigen matrix
+//			for (int i = 0; i < dataLoader.batchSize; i++) {
+//				input.row(i) = Eigen::Map<Eigen::RowVectorXd>(x[i].data(), 1, x[i].size());
+//			}
+//
+//			Eigen::MatrixXd yHat = propagateInput(Tensor::tensorWrap(input)).matrix;
+//
+//			Eigen::MatrixXd dy = loss_ptr->gradient(yHat, y);
+//
+//			propagateGradient(Tensor::tensorWrap(dy));
+//
+//			// gradeint descent
+//			for (auto& layer : layers) {
+//				layer->gradientDescent(alpha);
+//			}
+//			printf("Epoch: %d Cost: %f\n", j, loss_ptr->cost(yHat, y));
+//
+//		});
+//	}
+//}
 
 void NNModel::fit(std::vector<std::vector<double>> input, std::vector<double> y, int epochs, double alpha, bool shuffle) {
 
@@ -193,9 +234,30 @@ void NNModel::fit(std::vector<std::vector<double>> input, std::vector<double> y,
 					yHat = propagateInput(Tensor::tensorWrap(x.middleRows(i - batchSize, batchSize))).matrix;
 				}
 
-				Eigen::MatrixXd dy = loss_ptr->gradient(yHat, batchY); // Binary Cross Entropy Loss
+				// Check if its binary or multiclass classification
+				//if(classNamesS.size() != 0){
+				//	// Convert the string labels to int labels
+				//	Eigen::VectorXi labels = Eigen::VectorXi::Zero(batchY.size());
+				//	for (int i = 0; i < batchY.size(); i++) {
+				//		labels[i] = classNames[classNamesS[batchY[i]]];
+				//	}
 
-				propagateGradient(Tensor::tensorWrap(dy));
+				//	// Apply softmax to logits
+				//	Eigen::MatrixXd softYHat = softmax(yHat);
+
+				//	Eigen::MatrixXd dy = loss_ptr->gradient(softYHat, labels);
+
+				//	propagateGradient(Tensor::tensorWrap(dy));
+				//}
+				//else {
+				//	Eigen::MatrixXd dy = loss_ptr->gradient(yHat, batchY); // Binary Cross Entropy Loss
+
+				//	propagateGradient(Tensor::tensorWrap(dy));
+				//}
+
+				//Eigen::MatrixXd dy = loss_ptr->gradient(yHat, batchY); // Binary Cross Entropy Loss
+
+				//propagateGradient(Tensor::tensorWrap(dy));
 
 				// gradeint descent
 				for (auto& layer : layers) {
@@ -339,10 +401,6 @@ void NNModel::checkGrad(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std:
 	std::vector<double> dO;
 	int lastSize = 0;
 	for (auto& layer : layers) {
-		/*std::cout<<"============================"<<std::endl;
-		std::cout<<layer->W<<std::endl;
-		std::cout << "============================" << std::endl;*/
-
 		layer->addStuff(dO);
 		if (lastSize != dO.size()) {
 			indexes.push_back(dO.size());
@@ -438,7 +496,7 @@ void NNModel::checkGrad(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std:
 			A = layers[i]->backward(A);
 		}
 	}
-	//saveWeights("./Model/test_model"); 
+	saveWeights("./Model/test_model"); 
 }
 
 void NNModel::gradientChecking(std::string path, std::vector<std::string> classNamesS) {
@@ -532,3 +590,6 @@ void NNModel::gradientChecking(std::vector<std::vector<double>> input, std::vect
 		std::cout << dO[i] << " "<< dOapprox[i] << std::endl;
 	}
 }
+
+
+#endif // NNMODEL_CPP

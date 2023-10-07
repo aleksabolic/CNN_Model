@@ -95,5 +95,8 @@
     <ClInclude Include="Layers\UnflattenLayer.h">
       <Filter>Layers</Filter>
     </ClInclude>
+    <ClInclude Include="DataLoader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

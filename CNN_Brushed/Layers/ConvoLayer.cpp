@@ -379,7 +379,7 @@ void ConvoLayer::gradientDescent(double alpha) {
 	double epsilon = 1e-8;
 
 	//check if the layer should be regularized
-	/*if (regularization) {
+	if (true) {
 		std::string regularization = "l2";
 		double lambda = 0.01;
 		if (regularization == "l2") {
@@ -389,7 +389,7 @@ void ConvoLayer::gradientDescent(double alpha) {
 				}
 			}
 		}
-	}*/
+	}
 
 	// filling the wgt matrix
 	int inputChannels = x[0].size();
@@ -399,6 +399,14 @@ void ConvoLayer::gradientDescent(double alpha) {
 			wgt.block(f, c * kernelSize * kernelSize, 1, kernelSize * kernelSize) = v1;
 		}
 	}
+
+	//Gradient clipping
+	/*double maxNorm = 3;
+	double norm = wgt.norm();
+	if (norm > maxNorm) {
+		wgt = wgt * (maxNorm / norm);
+	}*/
+
 
 	vdw = beta1 * vdw + (1 - beta1) * wgt;
 	vdb = beta1 * vdb + (1 - beta1) * BGradients;
@@ -415,9 +423,6 @@ void ConvoLayer::gradientDescent(double alpha) {
 
 	W = W - (alpha * vdwCorr).cwiseQuotient(sdwCorr.unaryExpr([](double x) { return sqrt(x) + 1e-8; }));
 	b = b - (alpha * vdbCorr).cwiseQuotient(sdbCorr.unaryExpr([](double x) { return sqrt(x) + 1e-8; }));
-
-	//W -= (alpha / batchSize) * wgt;
-	//b -= (alpha / batchSize) * BGradients;
 
 	// Convert W to WOld
 	for (int f = 0; f < numFilters; f++) {

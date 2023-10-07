@@ -82,19 +82,15 @@ void DenseLayer::uploadWeightsBias(std::vector<std::vector<double>> wUpload, std
 }
 
 Tensor DenseLayer::forward(const Tensor& inputTensor) {
-	Eigen::MatrixXd xInput = inputTensor.matrix;
 
-	/*std::cout << "---------------------dense            input--------------------------------\n";
-	Tensor::tensorWrap(x).print();
-	std::cout << "---------------------dense            input--------------------------------\n";*/
-	x = xInput;
+	x = inputTensor.matrix;
 
 	Eigen::MatrixXd wx = x * W;
 
-	//change b to row vector
-	Eigen::RowVectorXd rowVector = b.transpose();
-
-	wx.rowwise() += rowVector;
+	// Add b the faster way
+	for (int i = 0; i < numNodes; i++) {
+		wx.block(0,i, batchSize, 1).array() += b(i);
+	}
 
 	auto sigmoid = [](double x) { return 1.0 / (1.0 + std::exp(-x)); };
 	auto sigmoidDeriv = [](double x) { return Sigmoid::sigmoid(x) * (1 - Sigmoid::sigmoid(x)); };
@@ -163,11 +159,6 @@ Tensor DenseLayer::backward(const Tensor& dyTensor) {
 
 	Eigen::MatrixXd dy = dyTensor.matrix;
 
-
-	/*std::cout << "---------------------dense--------------------------------\n";
-	Tensor::tensorWrap(dy).print();
-	std::cout << "---------------------dense--------------------------------\n";*/
-
 	// Applying the activation gradient
 	if (activation == "linear") {
 		// Do nothing
@@ -199,14 +190,22 @@ void DenseLayer::gradientDescent(double alpha) {
 	double epsilon = 1e-8;
 
 	//check if the layer should be regularized
-	/*if (regularization) {
+	if (true) {
 		std::string regularization = "l2";
 		double lambda = 0.01;
 		if (regularization == "l2") {
 			WGradients += (lambda * W) / batchSize;
 		}
-	}*/
+	}
 	
+	//Gradient clipping
+	/*double maxNorm = 1.0;
+	double norm = WGradients.norm();
+	if (norm > maxNorm) {
+		WGradients *= maxNorm / norm;
+	}*/
+
+
 	vdw = beta1 * vdw + (1 - beta1) * WGradients;
 	vdb = beta1 * vdb + (1 - beta1) * BGradients;
 
@@ -222,9 +221,6 @@ void DenseLayer::gradientDescent(double alpha) {
 
 	W = W - (alpha * vdwCorr).cwiseQuotient(sdwCorr.unaryExpr([](double x) { return sqrt(x) + 1e-8; }));
 	b = b - (alpha * vdbCorr).cwiseQuotient(sdbCorr.unaryExpr([](double x) { return sqrt(x) + 1e-8; }));
-
-	//W = W - (alpha * WGradients)/batchSize;
-	//b = b - (alpha * BGradients)/batchSize;
 
 	// Refresh the gradients
 	WGradients.setZero();

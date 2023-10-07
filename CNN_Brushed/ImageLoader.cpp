@@ -169,9 +169,9 @@ void ImageLoader::readImages(string directory, int batchSize, std::function<void
 				// Subtract the mean image and devide with sigma image
 				Eigen::MatrixXd meanChannel, sigmaChannel;
 				cv::cv2eigen(meanChannels[0], meanChannel);
-				cv::cv2eigen(sigmaChannels[0], meanChannel);
+				cv::cv2eigen(sigmaChannels[0], sigmaChannel);
 				eigenImage -= meanChannel;
-				eigenImage = eigenImage.cwiseQuotient(sigmaChannel);
+				//eigenImage = eigenImage.cwiseQuotient(sigmaChannel);
 
 				// Store the Eigen::Matrix into the vector
 				image.push_back(eigenImage);
@@ -206,64 +206,7 @@ void ImageLoader::readImages(string directory, int batchSize, std::function<void
 		}
 	}
 }
-//void ImageLoader::readImages(string directory, int batchSize, std::function<void(std::vector<std::vector<Eigen::MatrixXd>>&, std::vector<std::string>&) > callback) {
-//
-//	vector<vector<Eigen::MatrixXd>> dataSet;
-//	vector<std::string> dataLabels;
-//
-//	int size = 0;
-//	for (const auto& entry : fs::recursive_directory_iterator(directory)) {
-//		if (fs::is_regular_file(entry)) {
-//			string path = entry.path().string();
-//			Mat image = imread(path);
-//			if (!image.empty()) {
-//				image.convertTo(image, CV_64F); // Convert image to double precision
-//				image /= 255.0; // Rescale image
-//
-//				// Split the image into its color channels
-//				vector<Mat> channels(3);
-//				split(image, channels);
-//
-//				vector<Eigen::MatrixXd> image;
-//				for (auto& channel : channels) {
-//					// Convert cv::Mat to Eigen::Matrix
-//					Eigen::MatrixXd eigenImage;
-//					cv::cv2eigen(channel, eigenImage);
-//
-//					// Store the Eigen::Matrix into the vector
-//					image.push_back(eigenImage);
-//
-//					//testing
-//					break;
-//					//testing
-//				}
-//				dataSet.push_back(image);
-//				size++;
-//
-//				// Extract the parent path and store it
-//				string className = entry.path().parent_path().filename().string();
-//				dataLabels.push_back(className);
-//			}
-//			else {
-//				cerr << "Failed to open " << path << endl;
-//			}
-//
-//			// <--------check if its the last picture-------->
-//			if (size == batchSize) {
-//				callback(dataSet, dataLabels);
-//
-//				// clear the datasets
-//				vector<vector<Eigen::MatrixXd>>().swap(dataSet);
-//				vector<std::string>().swap(dataLabels);
-//				size = 0;
-//
-//				std::cout << "Batch loaded" << std::endl;
-//			}
-//		}
-//
-//	}
-//
-//}
+
 Mat ImageLoader::convertEigenToCv(const std::vector<Eigen::MatrixXd>& eigenImages) {
 	if (eigenImages.size() != 3) {
 		throw std::invalid_argument("Expected 3 channels in the input vector.");

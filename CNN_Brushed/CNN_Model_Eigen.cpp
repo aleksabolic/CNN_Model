@@ -12,6 +12,7 @@
 #include "functional"
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/eigen.hpp>
+#include <unordered_map>
 
 #include "Loss.h"
 #include "Scce.h"
@@ -26,80 +27,8 @@
 #include "./Layers/UnflattenLayer.h"
 
 #include "DataLoader.h"
+#include "CsvLoader.h"
 
-class Print {
-public:
-	static void print(std::vector < std::vector<double>> a) {
-		for (auto row : a) {
-			for (auto e : row) {
-				std::cout << e << " ";
-			}
-			std::cout << std::endl;
-		}
-	}
-
-	static void print(std::vector<double> a) {
-		for (auto e : a) {
-			std::cout << e << " ";
-		}
-		std::cout << std::endl;
-	}
-
-	static void print(std::vector<std::string> a) {
-		for (auto e : a) {
-			std::cout << e << " ";
-		}
-		std::cout << std::endl;
-	}
-};
-
-class CsvLoader {
-public:
-	static void LoadX(std::vector<std::vector<double>>& x, std::string path) {
-
-		std::ifstream file(path);
-		if (file.is_open()) {
-			std::string line;
-			while (std::getline(file, line)) {
-				// Process each line of the CSV file
-				std::stringstream ss(line);
-				std::string token;
-				std::vector<double> val;
-
-				while (std::getline(ss, token, ',')) {
-					double value = std::stod(token); // Convert token to double
-					val.push_back(value);
-				}
-				x.push_back(val);
-			}
-			file.close();
-		}
-		else {
-			std::cout << "Failed to open file!" << std::endl;
-		}
-	}
-
-	static void LoadY(std::vector<double>& y, std::string path) {
-
-		std::ifstream file(path);
-		if (file.is_open()) {
-			std::string line;
-			while (std::getline(file, line)) {
-				// Process each line of the CSV file
-				double value = std::stod(line); // Convert token to double
-
-				y.push_back(value);
-			}
-			file.close();
-		}
-		else {
-			std::cout << "Failed to open file!" << std::endl;
-		}
-	}
-};
-
-#include <iostream>
-#include <functional>
 
 int main() {
 	omp_set_num_threads(10);
@@ -116,37 +45,52 @@ int main() {
 	input.push_back(std::make_shared<FlattenLayer>());
 	input.push_back(std::make_shared<DenseLayer>(256, "relu"));
 	input.push_back(std::make_shared<DenseLayer>(82, "linear"));*/
-	input.push_back(std::make_shared<DenseLayer>(5, "relu"));
-	input.push_back(std::make_shared<DenseLayer>(10, "relu"));
-	input.push_back(std::make_shared<DenseLayer>(1, "sigmoid"));
+	input.push_back(std::make_shared<DenseLayer>(5, "leaky_relu"));
+	input.push_back(std::make_shared<DenseLayer>(5, "leaky_relu"));
+	input.push_back(std::make_shared<DenseLayer>(3, "linear"));
 
-
-	std::string xTrainPath = "C:\\Users\\aleks\\OneDrive\\Desktop\\Logic Regression\\x_train.csv";
+	/*std::string xTrainPath = "C:\\Users\\aleks\\OneDrive\\Desktop\\Logic Regression\\x_train.csv";
 	std::string yTrainPath = "C:\\Users\\aleks\\OneDrive\\Desktop\\Logic Regression\\y_train.csv";
+	std::vector<std::vector<double>> xTrain;
+	std::vector<int> yTrain;
+	CsvLoader::LoadX(xTrain, xTrainPath);
+	CsvLoader::LoadY(yTrain, yTrainPath);*/
+
+
+	std::string xTrainPath = "C:\\Users\\aleks\\OneDrive\\Desktop\\iris_ds\\x_iris.csv";
+	std::string yTrainPath = "C:\\Users\\aleks\\OneDrive\\Desktop\\iris_ds\\y_iris.csv";
 
 	std::vector<std::vector<double>> xTrain;
-	std::vector<double> yTrain;
+	std::vector<std::string> yTrainRaw;
 
 	CsvLoader::LoadX(xTrain, xTrainPath);
-	CsvLoader::LoadY(yTrain, yTrainPath);
+	CsvLoader::LoadY(yTrainRaw, yTrainPath);
 
-	int batchSize = 256;
-	/*vector<vector<double>> x(10, vector<double>(10));
-	Eigen::MatrixXd mat(10, 10);
+	std::vector<int> yTrain(yTrainRaw.size());
+	std::unordered_map<std::string, int> uniqueVals;
+	
+	//Encode string labels to integers
+	int index = 1;
+	for (int i = 0; i < yTrainRaw.size(); i++) {
+		if (!uniqueVals[yTrainRaw[i]]) {
+			uniqueVals[yTrainRaw[i]] = index;
+			yTrain[i] = index-1;
+			index++;
+		}
+		else {
+			yTrain[i] = uniqueVals[yTrainRaw[i]]-1;
+		}
+	}
 
+	int batchSize = 20;
 
-	for (int i = 0; i < 10; i++) {
-		mat.row(i) = Eigen::Map<Eigen::RowVectorXd>(x[i].data(), 1, x[i].size());
-	}*/
-
-	DataLoader<std::vector<std::vector<double>>, std::vector<double>> dataLoader = DataLoader<std::vector<std::vector<double>>, std::vector<double>>(xTrain, yTrain, batchSize);
-
-	//CsvLoader::LoadX(xTrain, "C:\\Users\\aleks\\Downloads\\iris.csv");
+	DataLoader<std::vector<std::vector<double>>, std::vector<int>> dataLoader = DataLoader<std::vector<std::vector<double>>, std::vector<int>>(xTrain, yTrain, batchSize);
+	dataLoader.ShuffleData();
 
 	NNModel model(input);
 
-	Loss* loss = new BinaryCrossEntropy();
-	//Loss* loss = new SparseCategoricalCrossEntropy();
+	//Loss* loss = new BinaryCrossEntropy();
+	Loss* loss = new SparseCategoricalCrossEntropy();
 	//model.compile(32, 1, 45, 45, loss);
 	model.compile(batchSize, xTrain[0].size(), loss);
 
@@ -172,9 +116,9 @@ int main() {
 	//model.gradientChecking(xTrainGrad, yTrainGrad);
 
 	//model.fit(xTrain, yTrain, 15, 0.05);
-	model.fit(dataLoader, 15, 0.05);
+	model.fit(dataLoader, 50, 0.001,false);
 
-	std::cout<<"Accuracy: "<<model.calcAccuracy(xTrain, yTrain, 0.5)<<std::endl;
+	std::cout<<"Accuracy: "<<model.calcAccuracy(dataLoader, false)<<std::endl;
 
 	//std::string path = "C:\\Users\\aleks\\OneDrive\\Desktop\\train_images";
 	//std::vector<std::string> classNames = ImageLoader::subfoldersNames(path);

@@ -98,5 +98,8 @@
     <ClInclude Include="DataLoader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CsvLoader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

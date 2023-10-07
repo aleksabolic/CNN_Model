@@ -1,6 +1,9 @@
 #pragma once
 
 #include <functional>
+#include <random>
+#include <algorithm>
+
 
 template <class typeX, class typeY>
 class DataLoader
@@ -15,6 +18,8 @@ public:
     DataLoader(typeX x, typeY y, int batchSize);
 
     void LoadData(std::function<void(typeX&, typeY&)> callback);
+
+    void ShuffleData();
 };
 
 template <class typeX, class typeY>
@@ -43,4 +48,29 @@ void DataLoader<typeX, typeY>::LoadData(std::function<void(typeX&, typeY&)> data
 
         dataCallback(xBatch, yBatch);
     }
+}
+
+template <class typeX, class typeY>
+void DataLoader<typeX, typeY>::ShuffleData()
+{
+	std::vector<int> indices(sampleCount);
+    for (int i = 0; i < sampleCount; i++) {
+		indices[i] = i;
+	}
+
+    std::random_device rd;
+    std::mt19937 g(rd());
+
+	std::shuffle(indices.begin(), indices.end(), g);
+
+	typeX xDataShuffled(sampleCount);
+	typeY yDataShuffled(sampleCount);
+
+    for (int i = 0; i < sampleCount; i++) {
+		xDataShuffled[i] = xData[indices[i]];
+		yDataShuffled[i] = yData[indices[i]];
+	}
+
+	xData = xDataShuffled;
+	yData = yDataShuffled;
 }

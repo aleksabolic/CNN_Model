@@ -126,7 +126,7 @@ void NNModel::train(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std::vec
 	Eigen::MatrixXd yHat = propagateInput(Tensor::tensorWrap(dataSet)).matrix;
 
 	// Convert the string labels to int labels
-	Eigen::VectorXi labels = Eigen::VectorXi::Zero(dataLabels.size());
+	std::vector<int> labels = std::vector<int>(dataLabels.size());
 	for (int i = 0; i < dataLabels.size(); i++) {
 		labels[i] = classNames[dataLabels[i]];
 	}
@@ -165,37 +165,6 @@ void NNModel::fit(std::string path, int epochs, std::vector<std::string> classNa
 	}
 }
 
-
-////fit method with data loader
-//template<class typeX, class typeY>
-//void NNModel::fit(DataLoader<typeX, typeY>& dataLoader, int epochs, double alpha) {
-//
-//	Eigen::MatrixXd input(dataLoader.batchSize, dataLoader.inputSize);
-//
-//	for (int j = 0; j < epochs; j++) {
-//		dataLoader.LoadData([=](typeX& x, typeY& y) {
-//
-//			// convert x to eigen matrix
-//			for (int i = 0; i < dataLoader.batchSize; i++) {
-//				input.row(i) = Eigen::Map<Eigen::RowVectorXd>(x[i].data(), 1, x[i].size());
-//			}
-//
-//			Eigen::MatrixXd yHat = propagateInput(Tensor::tensorWrap(input)).matrix;
-//
-//			Eigen::MatrixXd dy = loss_ptr->gradient(yHat, y);
-//
-//			propagateGradient(Tensor::tensorWrap(dy));
-//
-//			// gradeint descent
-//			for (auto& layer : layers) {
-//				layer->gradientDescent(alpha);
-//			}
-//			printf("Epoch: %d Cost: %f\n", j, loss_ptr->cost(yHat, y));
-//
-//		});
-//	}
-//}
-
 void NNModel::fit(std::vector<std::vector<double>> input, std::vector<double> y, int epochs, double alpha, bool shuffle) {
 
 
@@ -209,7 +178,7 @@ void NNModel::fit(std::vector<std::vector<double>> input, std::vector<double> y,
 	}
 
 	for (int j = 0; j < epochs; j++) {
-		std::vector<double> batchY = std::vector<double>(batchSize);
+		std::vector<int> batchY = std::vector<int>(batchSize);
 
 		for (int i = 0; i < y.size(); i++) {
 
@@ -218,7 +187,7 @@ void NNModel::fit(std::vector<std::vector<double>> input, std::vector<double> y,
 
 				//handle x and batchY index missmatch
 				if (i == y.size() - 1) {
-					std::vector<double> batchTemp;
+					std::vector<int> batchTemp;
 					for (int j = i - batchSize + 1; j < y.size(); j++) {
 						batchTemp.push_back(y[j]);
 					}
@@ -281,7 +250,7 @@ Eigen::MatrixXd NNModel::predict(std::vector < std::vector < Eigen::MatrixXd > >
 	return propagateInput(Tensor::tensorWrap(x)).matrix;
 }
 
-double NNModel::calcAccuracy(std::vector<std::vector<double>> input, std::vector<double> y, double delimiter) {
+double NNModel::calcAccuracy(std::vector<std::vector<double>> input, std::vector<int> y, double delimiter) {
 
 	Eigen::MatrixXd x(input.size(), input[0].size());
 
@@ -293,7 +262,7 @@ double NNModel::calcAccuracy(std::vector<std::vector<double>> input, std::vector
 	}
 	double absSum = 0;
 	// Calculate the accuracy for each batch
-	std::vector<double> batchY = std::vector<double>(batchSize);
+	std::vector<int> batchY = std::vector<int>(batchSize);
 
 	for (int i = 0; i < y.size(); i++) {
 
@@ -301,7 +270,7 @@ double NNModel::calcAccuracy(std::vector<std::vector<double>> input, std::vector
 
 			//handle x and batchY index missmatch
 			if (i == y.size() - 1) {
-				std::vector<double> batchTemp;
+				std::vector<int> batchTemp;
 				for (int j = i - batchSize + 1; j < y.size(); j++) {
 					batchTemp.push_back(y[j]);
 				}
@@ -383,7 +352,7 @@ double NNModel::accuracy(std::string path, std::vector<std::string> classNamesS)
 void NNModel::checkGrad(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std::vector<std::string>& dataLabels) {
 	
 	//Convert the string labels to int labels
-	Eigen::VectorXi labels = Eigen::VectorXi::Zero(dataLabels.size());
+	std::vector<int> labels = std::vector<int>(dataLabels.size());
 	for (int i = 0; i < dataLabels.size(); i++) {
 		labels[i] = classNames[dataLabels[i]];
 	}
@@ -512,7 +481,7 @@ void NNModel::gradientChecking(std::string path, std::vector<std::string> classN
 	
 }
 
-void NNModel::gradientChecking(std::vector<std::vector<double>> input, std::vector<double> y) {
+void NNModel::gradientChecking(std::vector<std::vector<double>> input, std::vector<int> y) {
 	//convert x to matrix
 	Eigen::MatrixXd x(input.size(), input[0].size());
 

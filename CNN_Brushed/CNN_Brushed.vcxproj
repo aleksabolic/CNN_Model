@@ -158,6 +158,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bce.h" />
+    <ClInclude Include="CsvLoader.h" />
     <ClInclude Include="DataLoader.h" />
     <ClInclude Include="ImageLoader.h" />
     <ClInclude Include="Layers\ConvoLayer.h" />

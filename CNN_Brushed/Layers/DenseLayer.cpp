@@ -102,11 +102,19 @@ Tensor DenseLayer::forward(const Tensor& inputTensor) {
 
 	auto softmaxFix = [](double x) {return std::max(x, 1e-9); };
 
+	auto leakyRelu = [](double x) {return x > 0 ? x : 0.01 * x; };
+	auto leakyReluGrad = [](double x) {return x > 0 ? 1.0 : 0.01; };
+
 	//Apply activation function
 
 	if (activation == "relu") {
 		nodeGrads = wx.unaryExpr(reluGrad);
 		wx = wx.unaryExpr(relu);
+	}
+	else if (activation == "leaky_relu") {
+		
+		nodeGrads = wx.unaryExpr(leakyReluGrad);
+		wx = wx.unaryExpr(leakyRelu);
 	}
 	else if (activation == "sigmoid") {
 		//Calculate node grads

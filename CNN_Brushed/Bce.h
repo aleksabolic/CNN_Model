@@ -8,11 +8,7 @@ class BinaryCrossEntropy : public Loss {
 public:
 	BinaryCrossEntropy();
 	double loss(double yHat, double yTrue) override;
-	Eigen::MatrixXd gradient(Eigen::MatrixXd yHat, std::vector<double> y) override;
-	double cost(Eigen::MatrixXd x, std::vector<double> y) override;
 
-	// scce
-	double cost(const Eigen::MatrixXd& yHat, const Eigen::VectorXi& labels) override;
-	Eigen::MatrixXd gradient(const Eigen::MatrixXd& yHat, const Eigen::VectorXi& labels) override;
-
+	Eigen::MatrixXd gradient(const Eigen::MatrixXd& yHat,const std::vector<int>& y) override;
+	double cost(const Eigen::MatrixXd& yHat, const std::vector<int>& y) override;
 };

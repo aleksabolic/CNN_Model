@@ -8,7 +8,7 @@ double BinaryCrossEntropy::loss(double yHat, double y) {
 	return -y * log(yHat) - (1.0 - y) * log(1.0 - yHat);
 }
 
-Eigen::MatrixXd BinaryCrossEntropy::gradient(Eigen::MatrixXd yHat, std::vector<double> y) {
+Eigen::MatrixXd BinaryCrossEntropy::gradient(const Eigen::MatrixXd& yHat, const std::vector<int>& y) {
 
 	double eps = 1e-7;
 	Eigen::MatrixXd gradients = Eigen::MatrixXd(yHat.rows(), 1);
@@ -19,7 +19,7 @@ Eigen::MatrixXd BinaryCrossEntropy::gradient(Eigen::MatrixXd yHat, std::vector<d
 	return gradients;
 }
 
-double BinaryCrossEntropy::cost(Eigen::MatrixXd yHat, std::vector<double> y) {
+double BinaryCrossEntropy::cost(const Eigen::MatrixXd& yHat,const std::vector<int>& y) {
 	double cost = 0.0;
 
 	for (int i = 0; i < y.size(); i++) {
@@ -28,10 +28,3 @@ double BinaryCrossEntropy::cost(Eigen::MatrixXd yHat, std::vector<double> y) {
 	return cost / y.size();
 }
 
-// scce
-double BinaryCrossEntropy::cost(const Eigen::MatrixXd& yHat, const Eigen::VectorXi& labels) {
-	return -INFINITY;
-}
-Eigen::MatrixXd BinaryCrossEntropy::gradient(const Eigen::MatrixXd& yHat, const Eigen::VectorXi& labels) {
-	return Eigen::MatrixXd::Zero(1, 1);
-}

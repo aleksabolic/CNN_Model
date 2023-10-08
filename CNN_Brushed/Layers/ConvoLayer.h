@@ -19,9 +19,9 @@ private:
 	std::pair<int, int> strides;
 	std::string activation;
 	bool regularization;
-	Eigen::MatrixXd wgt, vdw, sdw;
+	Eigen::MatrixXd WGrad, vdw, sdw;
 
-	std::vector<std::vector<Eigen::MatrixXd>> WOld, WGradients; // (numFilters, channels, h, w)
+	std::vector<std::vector<Eigen::MatrixXd>> WOld; // (numFilters, channels, h, w)
 	std::vector<std::vector<Eigen::MatrixXd>> layerOutput, outputGradients, nodeGrads; //(batch_size, numFilters, outputHeight, outputWidth)
 	Eigen::VectorXd BGradients, vdb, sdb; //(numFilters)
 	std::vector<std::vector<Eigen::MatrixXd>> x; // (batch_size, channels, h, w)

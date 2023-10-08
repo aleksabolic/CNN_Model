@@ -81,7 +81,7 @@ public:
 	void checkGrad(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std::vector<std::string>& dataLabels);
 
 	void gradientChecking(std::string path, std::vector<std::string> classNamesS);
-	void gradientChecking(std::vector<std::vector<double>> x, std::vector<int> y);
+	void gradientChecking(std::vector<std::vector<Eigen::MatrixXd>> x, std::vector<int> y);
 	//testing
 };
 
@@ -104,10 +104,11 @@ void NNModel::fit(DataLoader<typeX, typeY>& dataLoader, int epochs, double alpha
 			// If its multiclass classification
 			if (!isBinary) {
 				yHat = softmax(yHat);
-				cout << yHat << endl;
 			}
 
 			Eigen::MatrixXd dy = loss_ptr->gradient(yHat, y);
+
+			//cout << dy << endl;
 
 			propagateGradient(Tensor::tensorWrap(dy));
 

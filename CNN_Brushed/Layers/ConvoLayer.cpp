@@ -28,14 +28,13 @@ std::unordered_map<std::string, int> ConvoLayer::initSizes(std::unordered_map<st
 
 	int outputHeight = (inputHeight - kernelSize + 2 * padding) / strides.first + 1;
 	int outputWidth = (inputWidth - kernelSize + 2 * padding) / strides.second + 1;
-	//testing
+
 	W = Eigen::MatrixXd(numFilters, kernelSize * kernelSize * inputChannels);
-	wgt = Eigen::MatrixXd::Zero(numFilters, kernelSize * kernelSize * inputChannels);
+	WGrad = Eigen::MatrixXd::Zero(numFilters, kernelSize * kernelSize * inputChannels);
 	vdw = Eigen::MatrixXd::Zero(numFilters, kernelSize * kernelSize * inputChannels);
 	sdw = Eigen::MatrixXd::Zero(numFilters, kernelSize * kernelSize * inputChannels);
-	//testing
+	// WOld is the same as W but in a different format, everytime W changes WOld is updated
 	WOld = std::vector<std::vector<Eigen::MatrixXd>>(numFilters, std::vector<Eigen::MatrixXd>(inputChannels, Eigen::MatrixXd(kernelSize, kernelSize)));
-	WGradients = std::vector<std::vector<Eigen::MatrixXd>>(numFilters, std::vector<Eigen::MatrixXd>(inputChannels, Eigen::MatrixXd::Zero(kernelSize, kernelSize)));
 	layerOutput = std::vector<std::vector<Eigen::MatrixXd>>(batchSize, std::vector<Eigen::MatrixXd>(numFilters, Eigen::MatrixXd(outputHeight, outputWidth)));
 	nodeGrads = std::vector<std::vector<Eigen::MatrixXd>>(batchSize, std::vector<Eigen::MatrixXd>(numFilters, Eigen::MatrixXd(outputHeight, outputWidth)));
 	x = std::vector<std::vector<Eigen::MatrixXd>>(batchSize, std::vector<Eigen::MatrixXd>(inputChannels, Eigen::MatrixXd(inputHeight + 2 * padding, inputWidth + 2 * padding)));
@@ -46,20 +45,19 @@ std::unordered_map<std::string, int> ConvoLayer::initSizes(std::unordered_map<st
 	double std_dev = sqrt(2.0 / (inputChannels * kernelSize * kernelSize)); // He init for convolutional layers
 	std::normal_distribution<> d{0, std_dev}; // Mean 0, standard deviation calculated by He initialization
 
-	//testing
+	//init W
 	for (int i = 0; i < W.rows(); ++i) {
 		for (int j = 0; j < W.cols(); ++j) {
 			W(i, j) = d(gen);
 		}
 	}
-		//init WOld
+	//init WOld
 	for (int f = 0; f < numFilters; f++) {
 		for (int c = 0; c < inputChannels; c++) {
 			Eigen::RowVectorXd v1 = W.block(f, c * kernelSize * kernelSize, 1, kernelSize * kernelSize);
 			WOld[f][c] = Eigen::Map<Eigen::MatrixXd>(v1.data(), kernelSize, kernelSize);
 		}
 	}
-	//testing
 
 	for (int i = 0; i < b.size(); ++i) {
 		b(i) = d(gen);
@@ -84,94 +82,10 @@ std::unordered_map<std::string, int> ConvoLayer::initSizes(std::unordered_map<st
 	return outputSizes;
 }
 
-//Tensor ConvoLayer::forward(const Tensor& inputTensor) {
-//
-//	std::vector<std::vector<Eigen::MatrixXd>> input = inputTensor.matrix4d;
-//
-//	/*std::cout << "---------------------convo layer input --------------------------------\n";
-//	Tensor::tensorWrap(input).print();
-//	std::cout << "-------convo layer WWWWWW --------\n";
-//	std::cout << W << std::endl;
-//	std::cout << "-------convo layer WWWWWW --------\n";*/
-//
-//
-//	// add the padding
-//	if (padding) {
-//		#pragma omp parallel for
-//		for (int z = 0; z < batchSize; z++) {
-//			for (int c = 0; c < input[0].size(); c++) {
-//				x[z][c].setZero();  // Set the entire matrix to zero
-//				x[z][c].block(padding, padding, input[0][0].rows(), input[0][0].cols()) = input[z][c];
-//			}
-//		}
-//	}
-//	else {
-//		x = input;
-//	}
-//
-//
-//	#pragma omp parallel for
-//	for (int z = 0; z < batchSize; z++) {
-//		int inputChannels = x[0].size();
-//		Eigen::MatrixXd X = Eigen::MatrixXd(kernelSize * kernelSize * inputChannels, layerOutput[0][0].size());
-//
-//		// filling the X matrix
-//		for (int i = 0; i < layerOutput[0][0].rows(); i++) {
-//			for (int j = 0; j < layerOutput[0][0].cols(); j++) {
-//				int ii = i * strides.first;
-//				int jj = j * strides.second;
-//
-//				for (int c = 0; c < inputChannels; c++) {
-//					Eigen::Map<Eigen::VectorXd> v1(x[z][c].block(ii, jj, kernelSize, kernelSize).data(), kernelSize * kernelSize);
-//					X.block(c * kernelSize * kernelSize, i * layerOutput[0][0].cols() + j, kernelSize * kernelSize, 1) = v1;
-//				}
-//			}
-//		}
-//
-//		// calculate the output
-//		Eigen::MatrixXd output = W * X;
-//
-//		// add the bias
-//		output = output.colwise() + b;
-//
-//		for (int f = 0; f < numFilters; f++) {
-//			for (int i = 0; i < layerOutput[0][0].rows(); i++) {
-//				for (int j = 0; j < layerOutput[0][0].cols(); j++) {
-//					double dotP = output(f, i * layerOutput[0][0].cols() + j);
-//					// apply activation function (relu in this case)
-//					if (activation == "relu") {
-//						nodeGrads[z][f](i, j) = dotP > 0 ? 1 : 0;
-//						dotP = std::max(0.0, dotP);
-//					}
-//					// Adding Leaky ReLU activation
-//					else if (activation == "leaky_relu") {
-//						nodeGrads[z][f](i, j) = dotP > 0 ? 1 : 0.01;
-//						dotP = dotP > 0 ? dotP : 0.01 * dotP;
-//					}
-//					else if (activation == "linear") {
-//						nodeGrads[z][f](i, j) = 1;
-//					}
-//					layerOutput[z][f](i, j) = dotP;
-//				}
-//
-//			}
-//		}
-//	}
-//
-//	return Tensor::tensorWrap(layerOutput);
-//}
-
 Tensor ConvoLayer::forward(const Tensor& inputTensor) {
-	//convert w to wold
-	for (int f = 0; f < numFilters; f++) {
-		for (int c = 0; c < x[0].size(); c++) {
-			Eigen::RowVectorXd v1 = W.block(f, c * kernelSize * kernelSize, 1, kernelSize * kernelSize);
-			WOld[f][c] = Eigen::Map<Eigen::MatrixXd>(v1.data(), kernelSize, kernelSize);
-		}
-	}
-
 
 	std::vector<std::vector<Eigen::MatrixXd>> input = inputTensor.matrix4d;
+
 	// add the padding
 	if (padding) {
 		#pragma omp parallel for
@@ -188,19 +102,32 @@ Tensor ConvoLayer::forward(const Tensor& inputTensor) {
 
 	#pragma omp parallel for
 	for (int z = 0; z < batchSize; z++) {
-		#pragma omp parallel for
-		for (int f = 0; f < WOld.size(); f++) {
+		int inputChannels = x[0].size();
+		Eigen::MatrixXd X = Eigen::MatrixXd(kernelSize * kernelSize * inputChannels, layerOutput[0][0].size());
+
+		// filling the X matrix
+		for (int i = 0; i < layerOutput[0][0].rows(); i++) {
+			for (int j = 0; j < layerOutput[0][0].cols(); j++) {
+				int ii = i * strides.first;
+				int jj = j * strides.second;
+
+				for (int c = 0; c < inputChannels; c++) {
+					Eigen::Map<Eigen::VectorXd> v1(x[z][c].block(ii, jj, kernelSize, kernelSize).data(), kernelSize * kernelSize);
+					X.block(c * kernelSize * kernelSize, i * layerOutput[0][0].cols() + j, kernelSize * kernelSize, 1) = v1;
+				}
+			}
+		}
+
+		// calculate the output
+		Eigen::MatrixXd output = W * X;
+
+		// add the bias
+		output = output.colwise() + b;
+
+		for (int f = 0; f < numFilters; f++) {
 			for (int i = 0; i < layerOutput[0][0].rows(); i++) {
 				for (int j = 0; j < layerOutput[0][0].cols(); j++) {
-					int ii = i * strides.first;
-					int jj = j * strides.second;
-					double dotP = 0.0;
-					for (int c = 0; c < x[0].size(); c++) {
-						//Eigen::Map<Eigen::VectorXd> v1(WOld[f][c].data(), WOld[f][c].size());
-						//Eigen::Map<Eigen::VectorXd> v2(x[z][c].block(ii, jj, kernelSize, kernelSize).data(), kernelSize * kernelSize);
-						dotP +=( WOld[f][c].array() * x[z][c].block(ii, jj, kernelSize, kernelSize).array()).sum();
-					}
-					dotP += b(f);
+					double dotP = output(f, i * layerOutput[0][0].cols() + j);
 					// apply activation function (relu in this case)
 					if (activation == "relu") {
 						nodeGrads[z][f](i, j) = dotP > 0 ? 1 : 0;
@@ -216,18 +143,17 @@ Tensor ConvoLayer::forward(const Tensor& inputTensor) {
 					}
 					layerOutput[z][f](i, j) = dotP;
 				}
+
 			}
 		}
 	}
+
 	return Tensor::tensorWrap(layerOutput);
 }
 
 Tensor ConvoLayer::backward(const Tensor& dyTensor) {
 
 	std::vector<std::vector<Eigen::MatrixXd>> dy = dyTensor.matrix4d;
-	/*std::cout<<"---------------------dy--------------------------------\n";
-	Tensor::tensorWrap(dy).print();
-	std::cout << "---------------------dy--------------------------------\n";*/
 
 	// Apply activation gradient
 	for (int z = 0; z < dy.size(); z++) {
@@ -235,87 +161,41 @@ Tensor ConvoLayer::backward(const Tensor& dyTensor) {
 			dy[z][f] = dy[z][f].array() * nodeGrads[z][f].array();
 		}
 	}
+	//reset W and bgrad
+	WGrad.setZero();
+	BGradients.setZero();
 
-	// Calculate WGradient
-	//#pragma omp parallel for
-	//for (int f = 0; f < numFilters; f++) {
-	//	int inputChannels = x[0].size();
-	//	int outputHeight = layerOutput[0][0].rows();
-	//	int outputWidth = layerOutput[0][0].cols();
-	//	int outputSize = outputHeight * outputWidth;
-
-	//	Eigen::VectorXd DY = Eigen::VectorXd(batchSize * outputSize);
-	//	// Filling the DY vector
-	//	for (int z = 0; z < batchSize; z++) {
-	//		DY.segment(z * outputSize, outputSize) = Eigen::VectorXd::Map(dy[z][f].data(), outputSize);
-	//	}
-
-	//	#pragma omp parallel for
-	//	for (int i = 0; i < kernelSize; i++) {
-	//		for (int j = 0; j < kernelSize; j++) {
-
-	//			Eigen::MatrixXd X(inputChannels, batchSize * outputSize);
-	//			// Filling the X matrix
-	//			for (int c = 0; c < inputChannels; ++c) {
-	//				for (int z = 0; z < batchSize; ++z) {
-	//					X.row(c).segment(z * outputSize, outputSize) = Eigen::Map<Eigen::RowVectorXd>(x[z][c].block(i, j, outputHeight, outputWidth).data(), outputSize);
-	//				}
-	//			}
-
-	//			Eigen::MatrixXd WGradientrow = X * DY;
-	//			for (int c = 0; c < inputChannels; c++) {
-	//				WGradients[f][c](i, j) = WGradientrow(c,0);
-	//			}
-	//		}
-	//	}
-	//	for (int z = 0; z < batchSize; z++) {
-	//		BGradients[f] += dy[z][f].sum();
-	//	}
-	//}
-	
-	// Reset gradients
-	/*for (int f = 0; f < WOld.size(); f++) {
-		for (int c = 0; c < WOld[0].size(); c++) {
-			WGradients[f][c].setZero();
-		}
-	}
-	BGradients.setZero(); */
-
-
-
-	// Calculate WGradient
-	#pragma omp parallel for
+	//Calculate WGrad and BGrad
 	for (int z = 0; z < batchSize; z++) {
-	#pragma omp parallel for
-		for (int f = 0; f < WOld.size(); f++) {
-			for (int c = 0; c < WOld[0].size(); c++) {
-				for (int i = 0; i < kernelSize; i++) {
-					for (int j = 0; j < kernelSize; j++) {
-						WGradients[f][c](i,j) += (x[z][c].block(i, j, dy[z][f].rows(), dy[z][f].cols()).array() * dy[z][f].array()).sum();
-					}
+
+		int inputChannels = x[0].size();
+		int outputHeight = layerOutput[0][0].rows();
+		int outputWidth = layerOutput[0][0].cols();
+		int outputSize = outputHeight * outputWidth;
+
+		Eigen::MatrixXd DY(numFilters, outputSize); // numFilters x outputSize
+		// Filling the DY matrix
+		for (int f = 0; f < numFilters; f++) {
+			DY.row(f) = Eigen::RowVectorXd::Map(dy[z][f].data(), dy[z][f].size());
+		}
+
+		//Filling the X matrix
+		Eigen::MatrixXd X(outputSize, W.cols()); // outputSize x kernelSize * kernelSize * inputChannels
+		for (int i = 0; i < kernelSize; i++) {
+			for (int j = 0; j < kernelSize; j++) {
+				for (int c = 0; c < inputChannels; c++) {
+					X.col(c * kernelSize * kernelSize + j + i * kernelSize) = Eigen::VectorXd::Map(x[z][c].block(i, j, outputHeight, outputWidth).data(), outputSize);
 				}
 			}
-			//  Calculate BGradient
+		}
+
+		// Calculate BGradient
+		for (int f = 0; f < numFilters; f++) {
 			BGradients[f] += dy[z][f].sum();
 		}
+
+		WGrad += DY * X;
 	}
-
-
-	/*for (int z = 0; z < batchSize; z++) {
-		for (int f = 0; f < WOld.size(); f++) {
-			for (int c = 0; c < WOld[0].size(); c++) {
-				for (int i = 0; i < dy[0][0].rows(); i++) {
-					for (int j = 0; j < dy[0][0].cols(); j++) {
-						int ii = i * strides.first;
-						int jj = j * strides.second;
-
-						WGradients[f][c] += x[z][c].block(ii, jj, kernelSize, kernelSize) * dy[z][f](i, j);
-					}
-				}
-			}
-			BGradients[f] += dy[z][f].sum();
-		}
-	}*/
 
 	// reset the output gradients
 	for (int z = 0; z < batchSize; z++) {
@@ -323,7 +203,6 @@ Tensor ConvoLayer::backward(const Tensor& dyTensor) {
 			outputGradients[z][c].setZero();
 		}
 	}
-
 	// Calculate output gradient
 	#pragma omp parallel for
 	for (int z = 0; z < batchSize; z++) {
@@ -383,35 +262,24 @@ void ConvoLayer::gradientDescent(double alpha) {
 		std::string regularization = "l2";
 		double lambda = 0.01;
 		if (regularization == "l2") {
-			for (int f = 0; f < WOld.size(); f++) {
-				for (int c = 0; c < WOld[0].size(); c++) {
-					WGradients[f][c] += lambda * WOld[f][c] / batchSize;
-				}
-			}
+			WGrad += W * lambda / batchSize;
 		}
 	}
 
-	// filling the wgt matrix
 	int inputChannels = x[0].size();
-	for (int f = 0; f < numFilters; f++) {
-		for (int c = 0; c < inputChannels; c++) {
-			Eigen::Map<Eigen::RowVectorXd> v1(WGradients[f][c].data(), WGradients[f][c].size());
-			wgt.block(f, c * kernelSize * kernelSize, 1, kernelSize * kernelSize) = v1;
-		}
-	}
 
 	//Gradient clipping
-	/*double maxNorm = 3;
-	double norm = wgt.norm();
+	double maxNorm = 1.0;
+	double norm = WGrad.norm();
 	if (norm > maxNorm) {
-		wgt = wgt * (maxNorm / norm);
-	}*/
+		WGrad = WGrad * (maxNorm / norm);
+	}
 
 
-	vdw = beta1 * vdw + (1 - beta1) * wgt;
+	vdw = beta1 * vdw + (1 - beta1) * WGrad;
 	vdb = beta1 * vdb + (1 - beta1) * BGradients;
 
-	sdw = beta2 * sdw + (1 - beta2) * wgt.cwiseProduct(wgt);
+	sdw = beta2 * sdw + (1 - beta2) * WGrad.cwiseProduct(WGrad);
 	sdb = beta2 * sdb + (1 - beta2) * BGradients.cwiseProduct(BGradients);
 
 	//bias correction
@@ -433,12 +301,7 @@ void ConvoLayer::gradientDescent(double alpha) {
 	}
 
 	// Reset gradients
-	for (int f = 0; f < WOld.size(); f++) {
-		for (int c = 0; c < WOld[0].size(); c++) {
-			WGradients[f][c].setZero();
-			wgt.setZero();
-		}	
-	}
+	WGrad.setZero();
 	BGradients.setZero();
 
 	t++;
@@ -504,18 +367,12 @@ void ConvoLayer::loadWeights(const std::string& filename) {
 }
 
 void ConvoLayer::addStuff(std::vector<double>& dO) {
-	// filling the wgt matrix
 	int inputChannels = x[0].size();
-	for (int f = 0; f < numFilters; f++) {
-		for (int c = 0; c < inputChannels; c++) {
-			Eigen::Map<Eigen::RowVectorXd> v1(WGradients[f][c].data(), WGradients[f][c].size());
-			wgt.block(f, c * kernelSize * kernelSize, 1, kernelSize * kernelSize) = v1;
-		}
-	}
+
 	// adding the dw
-	for (int i = 0; i < wgt.rows(); i++) {
-		for (int j = 0; j < wgt.cols(); j++) {
-			dO.push_back(wgt(i, j));
+	for (int i = 0; i < WGrad.rows(); i++) {
+		for (int j = 0; j < WGrad.cols(); j++) {
+			dO.push_back(WGrad(i, j));
 		}
 	}
 	

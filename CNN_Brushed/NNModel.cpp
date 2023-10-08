@@ -118,10 +118,12 @@ void NNModel::train(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std::vec
 	//checkGrad(dataSet, dataLabels);//testing
 	printf("Started training...\n");
 
+	//testing
 	for (auto name : dataLabels) {
 		std::cout<<name<<" ";
 	}
 	std::cout << std::endl;
+	//testing
 
 	Eigen::MatrixXd yHat = propagateInput(Tensor::tensorWrap(dataSet)).matrix;
 
@@ -132,7 +134,7 @@ void NNModel::train(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std::vec
 	}
 
 	// Apply softmax to logits
-	Eigen::MatrixXd softYHat = softmax(yHat);
+	Eigen::MatrixXd softYHat = yHat; //should be softmax(yHat)
 
 	Eigen::MatrixXd dy = loss_ptr->gradient(softYHat, labels);
 
@@ -140,7 +142,7 @@ void NNModel::train(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std::vec
 
 	// gradeint descent
 	for (auto& layer : layers) {
-		layer->gradientDescent(0.1);
+		layer->gradientDescent(0.001);
 	}
 
 	printf("Finished training...  Cost: %f\n", loss_ptr->cost(softYHat, labels));
@@ -150,7 +152,7 @@ void NNModel::train(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std::vec
 
 void NNModel::fit(std::string path, int epochs, std::vector<std::string> classNamesS) {
 
-	// create the map for with the string to its index pairs
+	// create the map with the string to its index pairs
 	for (int i = 0; i < classNamesS.size(); i++) {
 		classNames[classNamesS[i]] = i;
 	}
@@ -362,7 +364,7 @@ void NNModel::checkGrad(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std:
 
 	Eigen::MatrixXd yHat = propagateInput(Tensor::tensorWrap(dataSet)).matrix;
 
-	Eigen::MatrixXd dy = loss_ptr->gradient(softmax(yHat), labels);
+	Eigen::MatrixXd dy = loss_ptr->gradient(yHat, labels);
 
 	propagateGradient(Tensor::tensorWrap(dy));
 
@@ -382,7 +384,7 @@ void NNModel::checkGrad(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std:
 	}
 	std::cout << dO.size() << std::endl;
 	// Calculate dOapprox
-
+	
 	std::vector<double> dOapprox;
 	double epsilon = 1e-9;
 	for (auto& layer : layers) {
@@ -391,10 +393,10 @@ void NNModel::checkGrad(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std:
 				double temp = layer->W(i, j);
 				layer->W(i, j) = temp + epsilon;
 				Eigen::MatrixXd yHatPlus = propagateInput(Tensor::tensorWrap(dataSet)).matrix;
-				double costPlus = loss_ptr->cost(softmax(yHatPlus), labels);
+				double costPlus = loss_ptr->cost(yHatPlus, labels);
 				layer->W(i, j) = temp - epsilon;
 				Eigen::MatrixXd yHatMinus = propagateInput(Tensor::tensorWrap(dataSet)).matrix;
-				double costMinus = loss_ptr->cost(softmax(yHatMinus), labels);
+				double costMinus = loss_ptr->cost(yHatMinus, labels);
 				layer->W(i, j) = temp;
 				dOapprox.push_back((costPlus - costMinus) / (2 * epsilon));
 			}
@@ -403,10 +405,10 @@ void NNModel::checkGrad(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std:
 			double temp = layer->b[i];
 			layer->b[i] = temp + epsilon;
 			Eigen::MatrixXd yHatPlus = propagateInput(Tensor::tensorWrap(dataSet)).matrix;
-			double costPlus = loss_ptr->cost(softmax(yHatPlus), labels);
+			double costPlus = loss_ptr->cost(yHatPlus, labels);
 			layer->b[i] = temp - epsilon;
 			Eigen::MatrixXd yHatMinus = propagateInput(Tensor::tensorWrap(dataSet)).matrix;
-			double costMinus = loss_ptr->cost(softmax(yHatMinus), labels);
+			double costMinus = loss_ptr->cost(yHatMinus, labels);
 			layer->b[i] = temp;
 			dOapprox.push_back((costPlus - costMinus) / (2 * epsilon));
 		}
@@ -453,17 +455,21 @@ void NNModel::checkGrad(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std:
 		A.print();*/
 		Eigen::MatrixXd yHat = propagateInput(Tensor::tensorWrap(dataSet)).matrix;
 
-		Eigen::MatrixXd dy = loss_ptr->gradient(softmax(yHat), labels);
+		Eigen::MatrixXd dy = loss_ptr->gradient(yHat, labels);
 
 		Tensor A = Tensor::tensorWrap(dy);
 
-		for (int i = layers.size() - 1; i >= 0; i--) {
-			std::cout<<"============================"<<std::endl;
-			A.print();
-			std::cout << "============================" << std::endl;
+		Tensor B = Tensor::tensorWrap(dataSet);
 
-			A = layers[i]->backward(A);
-		}
+		B.print();
+		//for (int i = layers.size() - 1; i >= 0; i--) {
+		//	std::cout<<"============================"<<std::endl;
+		//	B.print();
+		//	//cout << layers[i]->layerOutput<<endl;
+		//	std::cout << "============================" << std::endl;
+
+		//	B = layers[i]->forward(B);
+		//}
 	}
 	saveWeights("./Model/test_model"); 
 }
@@ -481,16 +487,16 @@ void NNModel::gradientChecking(std::string path, std::vector<std::string> classN
 	
 }
 
-void NNModel::gradientChecking(std::vector<std::vector<double>> input, std::vector<int> y) {
+void NNModel::gradientChecking(std::vector<std::vector<Eigen::MatrixXd>> input, std::vector<int> y) {
 	//convert x to matrix
 	Eigen::MatrixXd x(input.size(), input[0].size());
 
 	// Fill the Eigen::MatrixXd with the values from the std::vector
-	for (size_t i = 0; i < input.size(); ++i) {
+	/*for (size_t i = 0; i < input.size(); ++i) {
 		for (size_t j = 0; j < input[0].size(); ++j) {
 			x(i, j) = input[i][j];
 		}
-	}
+	}*/
 
 	Eigen::MatrixXd yHat = propagateInput(Tensor::tensorWrap(x)).matrix;
 
@@ -506,10 +512,10 @@ void NNModel::gradientChecking(std::vector<std::vector<double>> input, std::vect
 	for (int i = 0; i < dO.size(); i++) {
 		dO[i] /= batchSize;
 	}
-	std::cout << dO.size() << std::endl;
+	std::cout<<dO.size() << std::endl;
 	// Calculate dOapprox
 	std::vector<double> dOapprox;
-	double epsilon = 1e-4;
+	double epsilon = 1e-9;
 	for (auto& layer : layers) {
 		for (int i = 0; i < layer->W.rows(); i++) {
 			for (int j = 0; j < layer->W.cols(); j++) {

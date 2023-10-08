@@ -1,4 +1,5 @@
 #pragma once
+
 #include <vector>
 #include <Eigen/Dense>
 #include <unordered_map>
@@ -10,6 +11,7 @@
 
 
 #include "ImageLoader.h"
+#include "DataLoader.h"
 
 #include "Loss.h"
 #include <algorithm>
@@ -21,6 +23,8 @@ private:
 
 	double datasetSize = 0;
 
+	Loss* loss_ptr;
+
 	std::unordered_map<std::string, int> classNames;
 
 	Tensor propagateInput(const Tensor& x);
@@ -29,11 +33,7 @@ private:
 
 	void propagateSize(const std::unordered_map<std::string, int>& sizes);
 
-	Eigen::MatrixXd calcCostGradient(Eigen::MatrixXd yHat, std::vector<double> y);
-
-	Eigen::MatrixXd softmax(const Eigen::MatrixXd& x);
-
-	//void adamOptimizer(double alpha, double T, double e = 10e-7, double beta1 = 0.9, double beta2 = 0.999);
+	Eigen::MatrixXd softmax(Eigen::MatrixXd x);
 
 public:
 
@@ -43,38 +43,117 @@ public:
 
 	NNModel(const std::vector<std::shared_ptr<Layers>>& layersInput);
 
-	double calcCost(Eigen::MatrixXd x, std::vector<double> y);
-
-	double calcCost(std::vector < std::vector < Eigen::MatrixXd > > x, std::vector<std::string> yTrue);
-
-	double calcBatchCost(const Eigen::MatrixXd& yHat, const Eigen::VectorXi& labels);
-
 	// compilation for 1d inputs 
-	void compile(int batchSize1, int inputSize);
+	void compile(int batchSize1, int inputSize, Loss* loss_pointer);
 
 	// compilation for 2d inputs (images)
-	void compile(int batchSize1, int inputChannels, int inputHeight, int inputWidth);
+	void compile(int batchSize1, int inputChannels, int inputHeight, int inputWidth, Loss* loss_pointer);
 
 	void fit(std::vector<std::vector<double>> input, std::vector<double> y, int epochs, double alpha, bool shuffle = false);
-
-	Eigen::MatrixXd softmaxGradient(const Eigen::MatrixXd& yHat, const Eigen::VectorXi& labels);
 
 	void train(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std::vector<std::string>& dataLabels);
 
 	void fit(std::string path, int epochs, std::vector<std::string> classNamesS);
+
+	//fit method with dataloader class
+	template<class typeX, class typeY>
+	void fit(DataLoader<typeX, typeY>& dataLoader, int epochs, double alpha, bool isBinary);
 
 	// Use templates maybe?
 	Eigen::MatrixXd predict(Eigen::MatrixXd x);
 
 	Eigen::MatrixXd predict(std::vector < std::vector < Eigen::MatrixXd > > x);
 
-	double calcAccuracy(std::vector<std::vector<double>> input, std::vector<double> y, double delimiter);
+	double calcAccuracy(std::vector<std::vector<double>> input, std::vector<int> y, double delimiter);
 
 	void calcAccuracy(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std::vector<std::string>& dataLabels);
 
-	double accuracy(std::string path);
+	template<class typeX, class typeY>
+	double calcAccuracy(DataLoader<typeX, typeY> dataLoader, bool binaryClassif);
+
+	double accuracy(std::string path, std::vector<std::string> classNamesS);
 
 	void loadWeights(const std::string& filename);
 
 	void saveWeights(const std::string& filename);
+
+	//testing 
+	void checkGrad(std::vector<std::vector<Eigen::MatrixXd>>& dataSet, std::vector<std::string>& dataLabels);
+
+	void gradientChecking(std::string path, std::vector<std::string> classNamesS);
+	void gradientChecking(std::vector<std::vector<double>> x, std::vector<int> y);
+	//testing
 };
+
+//fit method with data loader
+template<class typeX, class typeY>
+void NNModel::fit(DataLoader<typeX, typeY>& dataLoader, int epochs, double alpha, bool isBinary) {
+
+	Eigen::MatrixXd input(dataLoader.batchSize, dataLoader.inputSize);
+
+	for (int j = 0; j < epochs; j++) {
+		dataLoader.LoadData([&](typeX& x, typeY& y) {
+
+			// convert x to eigen matrix
+			for (int i = 0; i < x.size(); i++) {
+				input.row(i) = Eigen::Map<Eigen::RowVectorXd>(x[i].data(), 1, x[i].size());
+			}
+
+			Eigen::MatrixXd yHat = propagateInput(Tensor::tensorWrap(input)).matrix;
+
+			// If its multiclass classification
+			if (!isBinary) {
+				yHat = softmax(yHat);
+				cout << yHat << endl;
+			}
+
+			Eigen::MatrixXd dy = loss_ptr->gradient(yHat, y);
+
+			propagateGradient(Tensor::tensorWrap(dy));
+
+			// gradeint descent
+			for (auto& layer : layers) {
+				layer->gradientDescent(alpha);
+			}
+			printf("Epoch: %d Cost: %f\n", j, loss_ptr->cost(yHat, y));
+
+		});
+	}
+}
+
+template<class typeX, class typeY>
+double NNModel::calcAccuracy(DataLoader<typeX, typeY> dataLoader, bool binaryClassif) {
+
+	int correct = 0;
+	int total = 0;
+	Eigen::MatrixXd input(dataLoader.batchSize, dataLoader.inputSize);
+
+	dataLoader.LoadData([&](typeX& x, typeY& y) {
+		// convert x to eigen matrix
+		for (int i = 0; i < x.size(); i++) {
+			input.row(i) = Eigen::Map<Eigen::RowVectorXd>(x[i].data(), 1, x[i].size());
+		}
+		Eigen::MatrixXd yHat = propagateInput(Tensor::tensorWrap(input)).matrix;
+
+		for (int z = 0; z < yHat.rows(); z++) {
+			if (binaryClassif) {
+				if (yHat(z, 0) > 0.5 && y[z] == 1) {
+					correct++;
+				}
+				else if (yHat(z, 0) < 0.5 && y[z] == 0) {
+					correct++;
+				}
+			}
+			else {
+				Eigen::MatrixXd::Index maxIndex;
+				yHat.row(z).maxCoeff(&maxIndex);
+				if (y[z] == maxIndex) {
+					correct++;
+				}
+			}
+			total++;
+		}
+	});
+
+	return 100 * (double)correct / total;
+}

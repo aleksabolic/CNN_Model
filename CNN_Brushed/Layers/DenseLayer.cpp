@@ -10,8 +10,10 @@
 
 //Constructor
 DenseLayer::DenseLayer(int numNodes, const std::string& activation, bool regularization) : activation(activation), numNodes(numNodes), regularization(regularization) {
-	BGradients = Eigen::RowVectorXd::Zero(numNodes);
-	b = Eigen::RowVectorXd(numNodes);
+	b = Eigen::VectorXd(numNodes);
+	vdb = Eigen::VectorXd::Zero(numNodes);
+	sdb = Eigen::VectorXd::Zero(numNodes);
+	t = 1;
 	trainable = true;
 }
 
@@ -19,7 +21,10 @@ std::unordered_map<std::string, int> DenseLayer::initSizes(std::unordered_map<st
 	int inputSize = sizes["input size"];
 	batchSize = sizes["batch size"];
 
-	w = Eigen::MatrixXd(inputSize, numNodes); // Not a mistake this is w transpose
+	BGradients = Eigen::VectorXd::Zero(numNodes);
+	W = Eigen::MatrixXd(inputSize, numNodes); 
+	vdw = Eigen::MatrixXd::Zero(inputSize, numNodes);
+	sdw = Eigen::MatrixXd::Zero(inputSize, numNodes);
 	WGradients = Eigen::MatrixXd::Zero(inputSize, numNodes);
 	layerOutput = Eigen::MatrixXd(batchSize, numNodes);
 	x = Eigen::MatrixXd(batchSize, inputSize);
@@ -37,9 +42,9 @@ std::unordered_map<std::string, int> DenseLayer::initSizes(std::unordered_map<st
 	double std_dev = sqrt(2.0 / inputSize);  
 	std::normal_distribution<> d{0, std_dev}; // Mean 0, standard deviation calculated by He initialization
 
-	for (int i = 0; i < w.rows(); ++i) {
-		for (int j = 0; j < w.cols(); ++j) {
-			w(i, j) = d(gen);
+	for (int i = 0; i < W.rows(); ++i) {
+		for (int j = 0; j < W.cols(); ++j) {
+			W(i, j) = d(gen);
 		}
 	}
 
@@ -52,20 +57,21 @@ std::unordered_map<std::string, int> DenseLayer::initSizes(std::unordered_map<st
 	std::unordered_map<std::string, int> outputSizes;
 	outputSizes["batch size"] = batchSize;
 	outputSizes["input size"] = numNodes;
+
 	return outputSizes;
 }
 
 void DenseLayer::uploadWeightsBias(std::vector<std::vector<double>> wUpload, std::vector<double> bUpload) {
-	if (wUpload.size() != w.rows() || wUpload[0].size() != numNodes) {
+	if (wUpload.size() != W.rows() || wUpload[0].size() != numNodes) {
 		// <--------- Throw error ---------->
-		std::cout << wUpload.size() << " " << wUpload[0].size() << " | " << w.rows() << " " << numNodes;
+		std::cout << wUpload.size() << " " << wUpload[0].size() << " | " << W.rows() << " " << numNodes;
 		std::cout << ":(" << std::endl;
 	}
 	else {
 		// Transpose the w 
 		for (int i = 0; i < wUpload.size(); i++) {
 			for (int j = 0; j < wUpload[0].size(); j++) {
-				w(i, j) = wUpload[i][j];
+				W(i, j) = wUpload[i][j];
 			}
 		}
 		for (int i = 0; i < bUpload.size(); i++) {
@@ -77,12 +83,14 @@ void DenseLayer::uploadWeightsBias(std::vector<std::vector<double>> wUpload, std
 
 Tensor DenseLayer::forward(const Tensor& inputTensor) {
 
-	Eigen::MatrixXd xInput = inputTensor.matrix;
-	x = xInput; // batch matrix
+	x = inputTensor.matrix;
 
-	Eigen::MatrixXd wx = x * w;
+	Eigen::MatrixXd wx = x * W;
 
-	wx.rowwise() += b;
+	// Add b the faster way
+	for (int i = 0; i < numNodes; i++) {
+		wx.block(0,i, batchSize, 1).array() += b(i);
+	}
 
 	auto sigmoid = [](double x) { return 1.0 / (1.0 + std::exp(-x)); };
 	auto sigmoidDeriv = [](double x) { return Sigmoid::sigmoid(x) * (1 - Sigmoid::sigmoid(x)); };
@@ -94,15 +102,23 @@ Tensor DenseLayer::forward(const Tensor& inputTensor) {
 
 	auto softmaxFix = [](double x) {return std::max(x, 1e-9); };
 
+	auto leakyRelu = [](double x) {return x > 0 ? x : 0.01 * x; };
+	auto leakyReluGrad = [](double x) {return x > 0 ? 1.0 : 0.01; };
+
 	//Apply activation function
 
 	if (activation == "relu") {
 		nodeGrads = wx.unaryExpr(reluGrad);
 		wx = wx.unaryExpr(relu);
 	}
+	else if (activation == "leaky_relu") {
+		
+		nodeGrads = wx.unaryExpr(leakyReluGrad);
+		wx = wx.unaryExpr(leakyRelu);
+	}
 	else if (activation == "sigmoid") {
 		//Calculate node grads
-		nodeGrads = wx.unaryExpr(sigmoidDeriv);
+		nodeGrads = wx.unaryExpr(sigmoidDeriv); 
 		wx = wx.unaryExpr(sigmoid);
 	}
 	else if (activation == "linear") {
@@ -129,14 +145,14 @@ Tensor DenseLayer::forward(const Tensor& inputTensor) {
 
 
 		// Calculate softmax node grads
-		#pragma omp parallel for
+		/*#pragma omp parallel for
 		for (int z = 0; z < batchSize; z++) {
 			for (int i = 0; i < numNodes; i++) {
 				for (int j = 0; j < numNodes; j++) {
 					softmaxNodeGrads[z](i, j) = (i == j) * (wx(z, j) * (1 - wx(z, j))) + (i != j) * (-wx(z, j) * wx(z, i));
 				}
 			}
-		}
+		}*/
 	}
 	else {
 		// Throw an error
@@ -152,11 +168,11 @@ Tensor DenseLayer::backward(const Tensor& dyTensor) {
 	Eigen::MatrixXd dy = dyTensor.matrix;
 
 	// Applying the activation gradient
-	if (activation != "softmax") {
-		dy = dy.cwiseProduct(nodeGrads);
+	if (activation == "linear") {
+		// Do nothing
 	}
-	else if(activation == "linear") {
-		// No nodeGrads so do nothing
+	else if (activation != "softmax") {
+		dy = dy.cwiseProduct(nodeGrads);
 	}
 	else {
 
@@ -164,43 +180,71 @@ Tensor DenseLayer::backward(const Tensor& dyTensor) {
 			dy.row(z) = dy.row(z) * softmaxNodeGrads[z];
 		}
 	}
-
 	WGradients = x.transpose() * dy;
 
 	BGradients = (Eigen::MatrixXd::Ones(1, dy.rows()) * dy).row(0);
 
-	outputGradients = dy * w.transpose();
+	outputGradients = dy * W.transpose();
+
 
 	return Tensor::tensorWrap(outputGradients);
 }
 
+// Gradient descent with momentum or adam
 void DenseLayer::gradientDescent(double alpha) {
 
+	double beta1 = 0.9;
+	double beta2 = 0.999;
+	double epsilon = 1e-8;
+
 	//check if the layer should be regularized
-	if (regularization) {
+	if (true) {
 		std::string regularization = "l2";
 		double lambda = 0.01;
 		if (regularization == "l2") {
-			WGradients += (lambda * w) / batchSize;
+			WGradients += (lambda * W) / batchSize;
 		}
 	}
 	
-	w = w - ((alpha * WGradients) / batchSize);
-	b = b - ((alpha * BGradients) / batchSize);
+	//Gradient clipping
+	/*double maxNorm = 1.0;
+	double norm = WGradients.norm();
+	if (norm > maxNorm) {
+		WGradients *= maxNorm / norm;
+	}*/
+
+
+	vdw = beta1 * vdw + (1 - beta1) * WGradients;
+	vdb = beta1 * vdb + (1 - beta1) * BGradients;
+
+	sdw = beta2 * sdw + (1 - beta2) * WGradients.cwiseProduct(WGradients);
+	sdb = beta2 * sdb + (1 - beta2) * BGradients.cwiseProduct(BGradients);
+
+	//bias correction
+	Eigen::MatrixXd vdwCorr = vdw / (1 - pow(beta1, t));
+	Eigen::VectorXd vdbCorr = vdb / (1 - pow(beta1, t));
+
+	Eigen::MatrixXd sdwCorr = sdw / (1 - pow(beta2, t));
+	Eigen::VectorXd sdbCorr = sdb / (1 - pow(beta2, t));
+
+	W = W - (alpha * vdwCorr).cwiseQuotient(sdwCorr.unaryExpr([](double x) { return sqrt(x) + 1e-8; }));
+	b = b - (alpha * vdbCorr).cwiseQuotient(sdbCorr.unaryExpr([](double x) { return sqrt(x) + 1e-8; }));
 
 	// Refresh the gradients
 	WGradients.setZero();
 	BGradients.setZero();
+
+	t++;
 }
 
 void DenseLayer::saveWeights(const std::string& filename) {
 	std::ofstream outfile(filename, std::ios::binary);
 
-	int rows = w.rows();
-	int cols = w.cols();
+	int rows = W.rows();
+	int cols = W.cols();
 	outfile.write((char*)&rows, sizeof(int));
 	outfile.write((char*)&cols, sizeof(int));
-	outfile.write((char*)w.data(), rows * cols * sizeof(double));
+	outfile.write((char*)W.data(), rows * cols * sizeof(double));
 
 	int size = b.size();
 	outfile.write((char*)&size, sizeof(int));
@@ -215,11 +259,25 @@ void DenseLayer::loadWeights(const std::string& filename) {
 	int rows, cols;
 	infile.read((char*)&rows, sizeof(int));
 	infile.read((char*)&cols, sizeof(int));
-	infile.read((char*)w.data(), rows * cols * sizeof(double));
+	infile.read((char*)W.data(), rows * cols * sizeof(double));
 
 	int size;
 	infile.read((char*)&size, sizeof(int));
 	infile.read((char*)b.data(), size * sizeof(double));
 
 	infile.close();
+}
+
+void DenseLayer::addStuff(std::vector<double>& dO) {
+	// adding the dw
+	for (int i = 0; i < WGradients.rows(); i++) {
+		for (int j = 0; j < WGradients.cols(); j++) {
+			dO.push_back(WGradients(i, j));
+		}
+	}
+
+	//adding the db
+	for (int i = 0; i < BGradients.size(); i++) {
+		dO.push_back(BGradients(i));
+	}
 }

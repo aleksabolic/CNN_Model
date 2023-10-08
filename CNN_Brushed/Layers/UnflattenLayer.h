@@ -5,11 +5,12 @@
 #include "../Tensor.h"
 #include "Layers.h"
 
-class FlattenLayer : public Layers{
+class UnflattenLayer : public Layers {
 public:
-	int batchSize, inputChannels, inputHeight, inputWidth;
+	int batchSize, inputSize;
+	int outputChannels, outputHeight, outputWidth;
 
-	FlattenLayer();
+	UnflattenLayer(int outputChannels, int outputHeight, int outputWidth);
 
 	std::unordered_map<std::string, int> initSizes(std::unordered_map<std::string, int>& sizes) override;
 

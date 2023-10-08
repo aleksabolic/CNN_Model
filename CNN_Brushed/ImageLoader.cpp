@@ -167,10 +167,10 @@ void ImageLoader::readImages(string directory, int batchSize, std::function<void
 				cv::cv2eigen(channel, eigenImage);
 			
 				// Subtract the mean image and devide with sigma image
-				Eigen::MatrixXd meanChannel, sigmaChannel;
+				/*Eigen::MatrixXd meanChannel, sigmaChannel;
 				cv::cv2eigen(meanChannels[0], meanChannel);
 				cv::cv2eigen(sigmaChannels[0], sigmaChannel);
-				eigenImage -= meanChannel;
+				eigenImage -= meanChannel;*/
 				//eigenImage = eigenImage.cwiseQuotient(sigmaChannel);
 
 				// Store the Eigen::Matrix into the vector

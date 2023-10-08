@@ -52,7 +52,6 @@ std::unordered_map<std::string, int> DenseLayer::initSizes(std::unordered_map<st
 		b(i) = d(gen);
 	}
 
-
 	// output sizes
 	std::unordered_map<std::string, int> outputSizes;
 	outputSizes["batch size"] = batchSize;
@@ -131,7 +130,7 @@ Tensor DenseLayer::forward(const Tensor& inputTensor) {
 		wx.colwise() -= rowMax;
 
 		//hacky fix
-		wx.unaryExpr(softmaxFix);
+		wx = wx.unaryExpr(softmaxFix);
 
 		wx = wx.unaryExpr(exponent);
 		for (int z = 0; z < wx.rows(); z++) {
@@ -145,14 +144,15 @@ Tensor DenseLayer::forward(const Tensor& inputTensor) {
 
 
 		// Calculate softmax node grads
-		/*#pragma omp parallel for
+		#pragma omp parallel for
 		for (int z = 0; z < batchSize; z++) {
 			for (int i = 0; i < numNodes; i++) {
 				for (int j = 0; j < numNodes; j++) {
-					softmaxNodeGrads[z](i, j) = (i == j) * (wx(z, j) * (1 - wx(z, j))) + (i != j) * (-wx(z, j) * wx(z, i));
+					softmaxNodeGrads[z](i, j) = (i == j) * (wx(z, j) * 
+						(1 - wx(z, j))) + (i != j) * (-wx(z, j) * wx(z, i));
 				}
 			}
-		}*/
+		}
 	}
 	else {
 		// Throw an error
@@ -186,7 +186,6 @@ Tensor DenseLayer::backward(const Tensor& dyTensor) {
 
 	outputGradients = dy * W.transpose();
 
-
 	return Tensor::tensorWrap(outputGradients);
 }
 
@@ -207,12 +206,11 @@ void DenseLayer::gradientDescent(double alpha) {
 	}
 	
 	//Gradient clipping
-	/*double maxNorm = 1.0;
+	double maxNorm = 1.0;
 	double norm = WGradients.norm();
 	if (norm > maxNorm) {
 		WGradients *= maxNorm / norm;
-	}*/
-
+	}
 
 	vdw = beta1 * vdw + (1 - beta1) * WGradients;
 	vdb = beta1 * vdb + (1 - beta1) * BGradients;

@@ -23,6 +23,7 @@ double SparseCategoricalCrossEntropy::cost(const Eigen::MatrixXd& yHat, const st
 }
 
 Eigen::MatrixXd SparseCategoricalCrossEntropy::gradient(const Eigen::MatrixXd& yHat, const std::vector<int>& labels) {
+
 	Eigen::MatrixXd dy = Eigen::MatrixXd::Zero(yHat.rows(), yHat.cols());
 
 	for (int z = 0; z < dy.rows(); z++) {

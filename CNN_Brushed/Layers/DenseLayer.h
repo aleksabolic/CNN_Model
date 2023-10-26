@@ -28,6 +28,7 @@ public:
 
 	std::unordered_map<std::string, int> initSizes(std::unordered_map<std::string, int>& sizes) override;
 
+	//<---------change with initCustomWeights()---------->
 	void uploadWeightsBias(std::vector<std::vector<double>> wUpload, std::vector<double> bUpload);
 
 	Tensor forward(const Tensor& inputTensor) override;

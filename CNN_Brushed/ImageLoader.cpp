@@ -177,7 +177,7 @@ void ImageLoader::readImages(string directory, int batchSize, std::function<void
 				image.push_back(eigenImage);
 
 				//testing
-				break;
+				//break;
 				//testing
 			}
 			

@@ -121,7 +121,7 @@ Tensor DenseLayer::forward(const Tensor& inputTensor) {
 		wx = wx.unaryExpr(sigmoid);
 	}
 	else if (activation == "linear") {
-		// Nothing
+		// Do nothing
 	}
 	else if (activation == "softmax") {
 
@@ -160,7 +160,7 @@ Tensor DenseLayer::forward(const Tensor& inputTensor) {
 	}
 
 	layerOutput = wx;
-	return Tensor::tensorWrap(wx);
+	return Tensor::tensorWrap(wx);  
 }
 
 Tensor DenseLayer::backward(const Tensor& dyTensor) {

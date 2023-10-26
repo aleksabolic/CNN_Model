@@ -7,6 +7,8 @@
 class MaxPoolLayer : public Layers{
 public:
 	int kernelSize, batchSize, stride, padding;
+	int inputChannels, inputHeight, inputWidth;
+	int outputHeight, outputWidth;
 	std::vector<std::vector<Eigen::MatrixXd>> layerOutput, outputGradients, gradGate; //(batch_size, numChannels, outputHeight, outputWidth)
 	//std::vector<std::vector<Eigen::MatrixXd>> x; // (batch_size, channels, h, w)
 

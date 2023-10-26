@@ -36,21 +36,26 @@ int main() {
 	auto start = std::chrono::high_resolution_clock::now();
 
 	std::vector<std::shared_ptr<Layers>> input;
-	input.push_back(std::make_shared<ConvoLayer>(2, 3, pair(1, 1), 0, "linear"));
+	input.push_back(std::make_shared<ConvoLayer>(2, 3, pair(1, 1), 0, "linear", "1."));
 	input.push_back(std::make_shared<MaxPoolLayer>(2, 2, 0));
-	input.push_back(std::make_shared<ConvoLayer>(2, 3, pair(1, 1), 0, "linear"));
+	input.push_back(std::make_shared<ConvoLayer>(2, 3, pair(1, 1), 0, "linear", "2."));
 	input.push_back(std::make_shared<MaxPoolLayer>(2, 2, 0));
-	input.push_back(std::make_shared<ConvoLayer>(2, 3, pair(1, 1), 0, "linear"));
+	input.push_back(std::make_shared<ConvoLayer>(2, 3, pair(1, 1), 0, "linear", "3."));
 	input.push_back(std::make_shared<MaxPoolLayer>(2, 2, 0));
+	input.push_back(std::make_shared<ConvoLayer>(2, 3, pair(1, 1), 0, "linear", "4."));
+
 	input.push_back(std::make_shared<FlattenLayer>());
+	
+	/*input.push_back(std::make_shared<ConvoLayer>(2, 10, pair(1, 1), 0, "linear", "3."));
+	input.push_back(std::make_shared<FlattenLayer>());*/
 	input.push_back(std::make_shared<DenseLayer>(1, "sigmoid"));
 
-	int batchSize = 1;
+	//int batchSize = 1;
 
 	NNModel model(input);
 
 	Loss* loss = new BinaryCrossEntropy();
-	model.compile(2, 1, 45, 45, loss);
+	model.compile(2, 3, 45, 45, loss);
 
 	std::string path = "C:\\Users\\aleks\\OneDrive\\Desktop\\train_img_bin";
 	std::vector<std::string> classNames = ImageLoader::subfoldersNames(path);
